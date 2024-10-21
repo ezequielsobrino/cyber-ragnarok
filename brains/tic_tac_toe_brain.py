@@ -130,9 +130,10 @@ Instructions:
             if match:
                 move = int(match.group())
                 if move in analysis['empty_cells']:
-                    return move, prompt, content
+                    return move
 
             print(f"LLM provided an invalid move: {content}. Falling back to random choice.")
-            return random.choice(analysis['empty_cells']), prompt, content
+            return random.choice(analysis['empty_cells'])
         except Exception as e:
-            raise e
+            print(f"Error in get_move: {e}")
+            return random.choice(analysis['empty_cells'])
