@@ -26,20 +26,33 @@ class TicTacToeCompetition:
         self.total_games = 10
         self.model_choice = "Llama-3.1-70b-versatile"
 
+        self.player_colors = {
+            'X': (153, 0, 0),    # Blood red
+            'O': (0, 191, 255)   # Ice blue
+        }
+        self.wood_tint = (193, 154, 107)
+
         self.load_images()
         self.create_buttons()
 
         self.state = "setup"  # Can be "setup", "playing", or "finished"
-
+        
     def load_images(self):
+        # Load and tint the background image
         self.bg_image = pygame.image.load("tic_tac_toe_board.png")
         self.bg_image = pygame.transform.scale(self.bg_image, (450, 450))
+        self.bg_image = self.apply_wood_tint(self.bg_image)
 
         self.x_image = pygame.image.load("x_image.png")
         self.x_image = pygame.transform.scale(self.x_image, (120, 120))
 
         self.o_image = pygame.image.load("o_image.png")
         self.o_image = pygame.transform.scale(self.o_image, (120, 120))
+
+    def apply_wood_tint(self, surface):
+        tinted_surface = surface.copy()
+        tinted_surface.fill(self.wood_tint, special_flags=pygame.BLEND_RGB_MULT)
+        return tinted_surface
 
     def create_buttons(self):
         self.start_button = pygame.Rect(700, 400, 200, 50)
@@ -72,28 +85,44 @@ class TicTacToeCompetition:
     def draw_game_screen(self):
         self.screen.fill((44, 62, 80))  # Dark blue background
 
-        # Draw the game board
+        # Draw the wood-tinted game board
         self.screen.blit(self.bg_image, (50, 75))
 
         # Draw X and O on the board
         for i, symbol in enumerate(self.board):
             x = (i % 3) * 150 + 125
             y = (i // 3) * 150 + 150
-            if symbol == 'X':
-                self.screen.blit(self.x_image, (x - 60, y - 60))
-            elif symbol == 'O':
-                self.screen.blit(self.o_image, (x - 60, y - 60))
+            if symbol in ['X', 'O']:
+                self.draw_tinted_piece(symbol, x, y)
 
-        # Draw statistics
+        # Draw statistics with player colors
         stats = [
-            f"Games Played: {self.game_count}",
-            f"Brain 1 (X) Wins: {self.brain1_wins}",
-            f"Brain 2 (O) Wins: {self.brain2_wins}",
-            f"Draws: {self.draws}"
+            ("Games Played", f"{self.game_count}", (236, 240, 241)),
+            (f"{self.model_choice} (X)", f"Wins: {self.brain1_wins}", self.player_colors['X']),
+            (f"{self.model_choice} (O)", f"Wins: {self.brain2_wins}", self.player_colors['O']),
+            ("Draws", f"{self.draws}", (236, 240, 241))
         ]
-        for i, stat in enumerate(stats):
-            text = self.font.render(stat, True, (236, 240, 241))
-            self.screen.blit(text, (600, 100 + i * 50))
+        for i, (label, value, color) in enumerate(stats):
+            label_text = self.font.render(label, True, color)
+            value_text = self.font.render(value, True, color)
+            self.screen.blit(label_text, (600, 100 + i * 50))
+            self.screen.blit(value_text, (850, 100 + i * 50))
+
+    def draw_tinted_piece(self, symbol, x, y):
+        image = self.x_image if symbol == 'X' else self.o_image
+        color = self.player_colors[symbol]
+        
+        # Create a copy of the image and fill it with the player's color
+        tinted_image = image.copy()
+        tinted_image.fill(color, special_flags=pygame.BLEND_RGBA_MULT)
+        
+        # Add a glow effect
+        glow_surface = pygame.Surface((140, 140), pygame.SRCALPHA)
+        pygame.draw.circle(glow_surface, (*color, 100), (70, 70), 60)
+        self.screen.blit(glow_surface, (x - 70, y - 70))
+        
+        # Draw the tinted image
+        self.screen.blit(tinted_image, (x - 60, y - 60))
 
     def handle_events(self):
         for event in pygame.event.get():
