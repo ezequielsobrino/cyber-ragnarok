@@ -8,11 +8,12 @@ from tic_tac_toe_brain import TicTacToeBrain
 class TicTacToeCompetition:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((1000, 600))
+        self.screen = pygame.display.set_mode((1200, 700))
         pygame.display.set_caption("Tic-Tac-Toe Brain Competition")
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
+        self.title_font = pygame.font.Font(None, 48)
 
         self.brain1 = None
         self.brain2 = None
@@ -27,8 +28,8 @@ class TicTacToeCompetition:
         self.model_choice = "Llama-3.1-70b-versatile"
 
         self.player_colors = {
-            'X': (153, 0, 0),    # Blood red
-            'O': (0, 191, 255)   # Ice blue
+            'X': (255, 87, 51),    # Bright red
+            'O': (52, 152, 219)    # Bright blue
         }
         self.wood_tint = (193, 154, 107)
 
@@ -40,14 +41,14 @@ class TicTacToeCompetition:
     def load_images(self):
         # Load and tint the background image
         self.bg_image = pygame.image.load("tic_tac_toe_board.png")
-        self.bg_image = pygame.transform.scale(self.bg_image, (450, 450))
+        self.bg_image = pygame.transform.scale(self.bg_image, (500, 500))
         self.bg_image = self.apply_wood_tint(self.bg_image)
 
         self.x_image = pygame.image.load("x_image.png")
-        self.x_image = pygame.transform.scale(self.x_image, (120, 120))
+        self.x_image = pygame.transform.scale(self.x_image, (130, 130))
 
         self.o_image = pygame.image.load("o_image.png")
-        self.o_image = pygame.transform.scale(self.o_image, (120, 120))
+        self.o_image = pygame.transform.scale(self.o_image, (130, 130))
 
     def apply_wood_tint(self, surface):
         tinted_surface = surface.copy()
@@ -55,58 +56,58 @@ class TicTacToeCompetition:
         return tinted_surface
 
     def create_buttons(self):
-        self.start_button = pygame.Rect(700, 400, 200, 50)
-        self.quit_button = pygame.Rect(700, 500, 200, 50)
+        self.start_button = pygame.Rect(800, 500, 250, 60)
+        self.quit_button = pygame.Rect(800, 580, 250, 60)
 
     def draw_setup_screen(self):
         self.screen.fill((44, 62, 80))  # Dark blue background
 
         # Draw title
-        title = self.font.render("Tic-Tac-Toe Brain Competition", True, (236, 240, 241))
-        self.screen.blit(title, (250, 50))
+        title = self.title_font.render("Tic-Tac-Toe Brain Competition", True, (236, 240, 241))
+        self.screen.blit(title, (300, 50))
 
         # Draw model selection
         model_text = self.font.render("Model: " + self.model_choice, True, (236, 240, 241))
-        self.screen.blit(model_text, (100, 150))
+        self.screen.blit(model_text, (400, 150))
 
         # Draw game count selection
         games_text = self.font.render(f"Number of games: {self.total_games}", True, (236, 240, 241))
-        self.screen.blit(games_text, (100, 250))
+        self.screen.blit(games_text, (400, 250))
 
         # Draw buttons
-        pygame.draw.rect(self.screen, (46, 204, 113), self.start_button)
-        start_text = self.font.render("Start", True, (236, 240, 241))
-        self.screen.blit(start_text, (self.start_button.x + 70, self.start_button.y + 10))
+        pygame.draw.rect(self.screen, (46, 204, 113), self.start_button, border_radius=10)
+        start_text = self.font.render("Start Competition", True, (236, 240, 241))
+        self.screen.blit(start_text, (self.start_button.x + 30, self.start_button.y + 15))
 
-        pygame.draw.rect(self.screen, (231, 76, 60), self.quit_button)
-        quit_text = self.font.render("Quit", True, (236, 240, 241))
-        self.screen.blit(quit_text, (self.quit_button.x + 75, self.quit_button.y + 10))
+        pygame.draw.rect(self.screen, (231, 76, 60), self.quit_button, border_radius=10)
+        quit_text = self.font.render("Quit Game", True, (236, 240, 241))
+        self.screen.blit(quit_text, (self.quit_button.x + 65, self.quit_button.y + 15))
 
     def draw_game_screen(self):
         self.screen.fill((44, 62, 80))  # Dark blue background
 
         # Draw the wood-tinted game board
-        self.screen.blit(self.bg_image, (50, 75))
+        self.screen.blit(self.bg_image, (50, 100))
 
         # Draw X and O on the board
         for i, symbol in enumerate(self.board):
-            x = (i % 3) * 150 + 125
-            y = (i // 3) * 150 + 150
+            x = (i % 3) * 165 + 135
+            y = (i // 3) * 165 + 185
             if symbol in ['X', 'O']:
                 self.draw_tinted_piece(symbol, x, y)
 
         # Draw statistics with player colors
         stats = [
             ("Games Played", f"{self.game_count}", (236, 240, 241)),
-            (f"{self.model_choice} (X)", f"Wins: {self.brain1_wins}", self.player_colors['X']),
-            (f"{self.model_choice} (O)", f"Wins: {self.brain2_wins}", self.player_colors['O']),
+            (f"{self.model_choice}", f"Wins: {self.brain1_wins}", self.player_colors['X']),
+            (f"{self.model_choice}", f"Wins: {self.brain2_wins}", self.player_colors['O']),
             ("Draws", f"{self.draws}", (236, 240, 241))
         ]
         for i, (label, value, color) in enumerate(stats):
             label_text = self.font.render(label, True, color)
             value_text = self.font.render(value, True, color)
-            self.screen.blit(label_text, (600, 100 + i * 50))
-            self.screen.blit(value_text, (850, 100 + i * 50))
+            self.screen.blit(label_text, (700, 150 + i * 60))
+            self.screen.blit(value_text, (1000, 150 + i * 60))
 
     def draw_tinted_piece(self, symbol, x, y):
         image = self.x_image if symbol == 'X' else self.o_image
@@ -117,12 +118,12 @@ class TicTacToeCompetition:
         tinted_image.fill(color, special_flags=pygame.BLEND_RGBA_MULT)
         
         # Add a glow effect
-        glow_surface = pygame.Surface((140, 140), pygame.SRCALPHA)
-        pygame.draw.circle(glow_surface, (*color, 100), (70, 70), 60)
-        self.screen.blit(glow_surface, (x - 70, y - 70))
+        glow_surface = pygame.Surface((150, 150), pygame.SRCALPHA)
+        pygame.draw.circle(glow_surface, (*color, 100), (75, 75), 65)
+        self.screen.blit(glow_surface, (x - 75, y - 75))
         
         # Draw the tinted image
-        self.screen.blit(tinted_image, (x - 60, y - 60))
+        self.screen.blit(tinted_image, (x - 65, y - 65))
 
     def handle_events(self):
         for event in pygame.event.get():
