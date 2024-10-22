@@ -2,12 +2,6 @@
 
 A Python framework for creating AI model competitions through various games, generating entertaining and visually appealing battle videos. Currently featuring Tic-Tac-Toe battles between different Language Models (LLMs), with plans to expand to chess, checkers, and more games.
 
-## Demo Video
-
-[![Cyber Ragnarok Demo](https://img.youtube.com/vi/od9GdSF1vC4/0.jpg)](https://www.youtube.com/watch?v=od9GdSF1vC4)
-
-Watch different AI models battle it out in Tic-Tac-Toe! Click the image above to see the action.
-
 ## Features
 
 - 🎮 Multiple Game Support (extensible architecture)
