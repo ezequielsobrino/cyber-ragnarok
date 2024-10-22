@@ -78,6 +78,7 @@ class TournamentVideoMaker:
         self.SEA_BLUE = (0, 105, 148, 255)
         self.BLOOD_RED = (139, 0, 0)
         self.GOLDEN = (255, 215, 0)
+        self.TEXT_COLOR = (255, 255, 255)
         
         try:
             pygame.init()
@@ -157,36 +158,24 @@ class TournamentVideoMaker:
             placeholder.fill((50, 50, 50))
             return placeholder
 
-    def create_intro(self, model1_name, model2_name, duration_seconds=5):
-        self.logger.info(f"Creating intro sequence for {model1_name} vs {model2_name}")
-        
-        self.model1_name = model1_name
-        self.model2_name = model2_name
-        self.model1_img = self._load_model_image(model1_name)
-        self.model2_img = self._load_model_image(model2_name)
-        
-        frames = int(duration_seconds * self.fps)
-        try:
-            for frame in range(frames):
-                self.screen.fill((0, 0, 0))
-                self._draw_model_images()
-                
-                title = self.font_big.render("TicTacToe Tournament", True, (255, 255, 255))
-                self.screen.blit(title, (self.width//2 - title.get_width()//2, self.height//8))
-                
-                name1_text = self.font.render(model1_name, True, (255, 255, 255))
-                name2_text = self.font.render(model2_name, True, (255, 255, 255))
-                vs_text = self.font_big.render("VS", True, (255, 0, 0))
-                
-                text_y = self.height * 0.75
-                self.screen.blit(name1_text, (self.width//4 - name1_text.get_width()//2, text_y))
-                self.screen.blit(vs_text, (self.width//2 - vs_text.get_width()//2, text_y))
-                self.screen.blit(name2_text, (3*self.width//4 - name2_text.get_width()//2, text_y))
-                
-                self._write_frame()
-        except Exception as e:
-            self.logger.error(f"Error creating intro: {str(e)}", exc_info=True)
-            raise
+    def _draw_model_names(self):
+        """Helper method to consistently draw model names under images"""
+        if self.model1_name and self.model2_name:
+            margin = 20
+            
+            # Calculate positions for model 1 name
+            name1_text = self.font.render(self.model1_name, True, self.TEXT_COLOR)
+            name1_x = margin + (self.model1_img.get_width() - name1_text.get_width()) // 2
+            name1_y = (self.height + self.model1_img.get_height()) // 2 + 20
+            
+            # Calculate positions for model 2 name
+            name2_text = self.font.render(self.model2_name, True, self.TEXT_COLOR)
+            name2_x = self.width - self.model2_img.get_width() - margin + (self.model2_img.get_width() - name2_text.get_width()) // 2
+            name2_y = (self.height + self.model2_img.get_height()) // 2 + 20
+            
+            # Draw the names
+            self.screen.blit(name1_text, (name1_x, name1_y))
+            self.screen.blit(name2_text, (name2_x, name2_y))
 
     def _draw_model_images(self, winner=None, final_winner=False):
         if self.model1_img and self.model2_img:
@@ -251,6 +240,35 @@ class TournamentVideoMaker:
             # Draw the actual images
             self.screen.blit(self.model1_img, (margin, img_y))
             self.screen.blit(self.model2_img, (self.width - self.model2_img.get_width() - margin, img_y))
+            
+            # Draw names under images
+            self._draw_model_names()
+
+    def create_intro(self, model1_name, model2_name, duration_seconds=5):
+        self.logger.info(f"Creating intro sequence for {model1_name} vs {model2_name}")
+        
+        self.model1_name = model1_name
+        self.model2_name = model2_name
+        self.model1_img = self._load_model_image(model1_name)
+        self.model2_img = self._load_model_image(model2_name)
+        
+        frames = int(duration_seconds * self.fps)
+        try:
+            for frame in range(frames):
+                self.screen.fill((0, 0, 0))
+                self._draw_model_images()
+                
+                title = self.font_big.render("Cyber Ragnarok - Tic Tac Toe", True, self.TEXT_COLOR)
+                self.screen.blit(title, (self.width//2 - title.get_width()//2, self.height//8))
+                
+                vs_text = self.font_big.render("VS", True, (255, 0, 0))
+                vs_y = self.height * 0.75
+                self.screen.blit(vs_text, (self.width//2 - vs_text.get_width()//2, vs_y))
+                
+                self._write_frame()
+        except Exception as e:
+            self.logger.error(f"Error creating intro: {str(e)}", exc_info=True)
+            raise
 
     def render_game(self, game, frame_duration=1):
         self.logger.debug(f"Rendering game state: {game.board}")
@@ -318,9 +336,9 @@ class TournamentVideoMaker:
                 
                 self._draw_model_images()
                 
-                round_text = self.font_big.render(f"Round {round_num}", True, (255, 255, 255))
-                score_text = self.font.render(f"{model1_score} - {model2_score}", True, (255, 255, 255))
-                ties_text = self.font.render(f"Ties: {ties}", True, (255, 255, 255))
+                round_text = self.font_big.render(f"Round {round_num}", True, self.TEXT_COLOR)
+                score_text = self.font.render(f"{model1_score} - {model2_score}", True, self.TEXT_COLOR)
+                ties_text = self.font.render(f"Ties: {ties}", True, self.TEXT_COLOR)
                 
                 self.screen.blit(round_text, (self.width//2 - round_text.get_width()//2, self.height//3))
                 self.screen.blit(score_text, (self.width//2 - score_text.get_width()//2, self.height//2))
@@ -347,7 +365,7 @@ class TournamentVideoMaker:
                 else:
                     title = self.font_big.render(f"{winner_name} Wins!", True, (255, 215, 0))
                 
-                score_text = self.font.render(f"Final Score: {score1} - {score2} (Ties: {ties})", True, (255, 255, 255))
+                score_text = self.font.render(f"Final Score: {score1} - {score2} (Ties: {ties})", True, self.TEXT_COLOR)
                 
                 self.screen.blit(title, (self.width//2 - title.get_width()//2, self.height//3))
                 self.screen.blit(score_text, (self.width//2 - score_text.get_width()//2, self.height//2))
@@ -430,7 +448,7 @@ def main():
     # Configuration
     MODEL1_NAME = "llama-3.1-70b-versatile"
     MODEL2_NAME = "llama-3.1-8b-instant"
-    NUM_GAMES = 1
+    NUM_GAMES = 10
     
     model1_clean = MODEL1_NAME.replace("-", "_").replace(".", "_")
     model2_clean = MODEL2_NAME.replace("-", "_").replace(".", "_")
