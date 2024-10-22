@@ -6,6 +6,8 @@ from datetime import datetime
 from moviepy.editor import VideoFileClip, AudioFileClip
 import os
 
+from brains.providers.groq_provider import GroqProvider
+from brains.tic_tac_toe_brain import TicTacToeBrain
 from games.tic_tac_toe import TicTacToeGame
 
 # Configure logging
@@ -414,7 +416,7 @@ def main():
     # Configuration
     MODEL1_NAME = "llama-3.1-70b-versatile"
     MODEL2_NAME = "llama-3.1-8b-instant"
-    NUM_GAMES = 1
+    NUM_GAMES = 10
     
     model1_clean = MODEL1_NAME.replace("-", "_").replace(".", "_")
     model2_clean = MODEL2_NAME.replace("-", "_").replace(".", "_")
@@ -423,6 +425,14 @@ def main():
     logger.info(f"Tournament config: {MODEL1_NAME} vs {MODEL2_NAME}, {NUM_GAMES} games")
     
     try:
+        # Initialize Groq providers with different models
+        model1_provider = GroqProvider(model_id=MODEL1_NAME)
+        model2_provider = GroqProvider(model_id=MODEL2_NAME)
+
+        # Initialize LLM providers and brains
+        model1_brain = TicTacToeBrain(llm_provider=model1_provider)  
+        model2_brain = TicTacToeBrain(llm_provider=model2_provider)
+        
         video_maker = TournamentVideoMaker()
         video_maker.start_video(OUTPUT_PATH)
         
@@ -440,8 +450,18 @@ def main():
                 valid_moves = game.get_valid_moves()
                 if not valid_moves:
                     break
-                    
-                move = random.choice(valid_moves)
+                
+                # Instead of random choice, use the appropriate brain based on current player
+                if game.current_player == 'X':
+                    move = model1_brain.get_move(game.board, 'X')
+                else:
+                    move = model2_brain.get_move(game.board, 'O')
+                
+                # Validate the move and fall back to random if invalid
+                if move not in valid_moves:
+                    logger.warning(f"Invalid move {move} suggested by brain. Falling back to random choice.")
+                    move = random.choice(valid_moves)
+                
                 game.make_move(move, game.current_player)
                 video_maker.render_game(game, frame_duration=0.5)
             

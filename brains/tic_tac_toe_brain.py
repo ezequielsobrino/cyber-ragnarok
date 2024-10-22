@@ -6,13 +6,11 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from groq import Groq
 
-class TicTacToeBrain:
-    def __init__(self, model_id="llama-3.1-70b-versatile"):
-        load_dotenv()
+from brains.providers.base import LLMProvider
 
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.client = client
-        self.model_id = model_id
+class TicTacToeBrain:
+    def __init__(self, llm_provider: LLMProvider):
+        self.llm_provider = llm_provider
 
     def analyze_board(self, board: List[str], current_player: str) -> dict:
         analysis = {
@@ -113,18 +111,12 @@ Instructions:
 - Analyze the board carefully
 - Consider the move priorities
 - Choose the best move based on the current game state
-- Respond with ONLY the position number (0-8) for your chosen move"""
+- Respond with ONLY the position number (0-8) for your chosen move. Without another comments
+"""
 
         try:
-            response = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model_id,
-                temperature=0.2,
-                max_tokens=10,
-            )
+            content = self.llm_provider.get_completion(prompt)
             
-            content = response.choices[0].message.content.strip()
-
             # Intenta encontrar un número en la respuesta
             match = re.search(r'\b[0-8]\b', content)
             if match:
