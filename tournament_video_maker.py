@@ -3,7 +3,9 @@ import cv2
 import random
 import logging
 from datetime import datetime
-from games.tic_tac_toe import TicTacToeGame
+from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
+from pydub import AudioSegment
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -15,10 +17,55 @@ logging.basicConfig(
     ]
 )
 
+class TicTacToeGame:
+    def __init__(self, model1_starts=True):
+        self.board = [' '] * 9
+        self.current_player = 'X' if model1_starts else 'O'
+        self.game_over = False
+        self.winner = None
+        self.winning_line = None
+
+    def get_valid_moves(self):
+        return [i for i, piece in enumerate(self.board) if piece == ' ']
+
+    def make_move(self, position, player):
+        if self.board[position] == ' ' and not self.game_over:
+            self.board[position] = player
+            if self._check_winner(player):
+                self.game_over = True
+                self.winner = player
+            elif not self.get_valid_moves():
+                self.game_over = True
+            else:
+                self.current_player = 'O' if player == 'X' else 'X'
+            return True
+        return False
+
+    def _check_winner(self, player):
+        win_combinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Horizontal
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Vertical
+            [0, 4, 8], [2, 4, 6]              # Diagonal
+        ]
+        
+        for line in win_combinations:
+            if all(self.board[i] == player for i in line):
+                self.winning_line = line
+                return True
+        return False
+
 class TournamentVideoMaker:
     def __init__(self, width=1920, height=1080, fps=30):
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"Initializing TournamentVideoMaker with dimensions {width}x{height} at {fps} FPS")
+        
+        # Initialize Pygame
+        pygame.init()
+        
+        # Initialize temporary file paths
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.temp_video_path = f"temp_video_{timestamp}.mp4"
+        self.final_output_path = None
         
         self.width = width
         self.height = height
@@ -26,39 +73,29 @@ class TournamentVideoMaker:
         self.font_size = int(height * 0.05)
         self.font_large = int(height * 0.08)
         
-        # Define custom colors with alpha for overlay
-        self.WOOD_COLOR = (222, 184, 135, 128)    # Tan/light wood color with alpha
-        self.NATURE_GREEN = (76, 153, 0, 255)     # Natural green without transparency for X pieces
-        self.SEA_BLUE = (0, 105, 148, 255)        # Sea blue without transparency for O pieces
-        self.BLOOD_RED = (139, 0, 0)              # Blood red (no alpha needed)
-        self.GOLDEN = (255, 215, 0)               # Golden (no alpha needed)
+        self.WOOD_COLOR = (222, 184, 135, 128)
+        self.NATURE_GREEN = (76, 153, 0, 255)
+        self.SEA_BLUE = (0, 105, 148, 255)
+        self.BLOOD_RED = (139, 0, 0)
+        self.GOLDEN = (255, 215, 0)
         
         try:
-            # Initialize Pygame with a display mode
             pygame.init()
             pygame.display.set_mode((width, height))
             self.screen = pygame.Surface((width, height))
             self.clock = pygame.time.Clock()
             self.font = pygame.font.Font(None, self.font_size)
             self.font_big = pygame.font.Font(None, self.font_large)
-            self.logger.info("Pygame initialized successfully")
             
-            # Load and tint game images
-            self.logger.info("Loading and tinting game images...")
-            
-            # Load original images
+            # Load and tint images
             original_board = pygame.image.load('tic_tac_toe_board.png').convert_alpha()
             original_x = pygame.image.load('x_image.png').convert_alpha()
             original_o = pygame.image.load('o_image.png').convert_alpha()
             
-            # Apply color overlays
             self.board_img = self._apply_color_overlay(original_board, self.WOOD_COLOR)
             self.x_img = self._apply_color_overlay(original_x, self.NATURE_GREEN)
             self.o_img = self._apply_color_overlay(original_o, self.SEA_BLUE)
             
-            self.logger.info("Game images tinted successfully")
-            
-            # Scale images
             board_scale = min(width * 0.4 / self.board_img.get_width(), 
                             height * 0.6 / self.board_img.get_height())
             self.board_img = pygame.transform.scale(self.board_img, 
@@ -69,7 +106,6 @@ class TournamentVideoMaker:
             self.x_img = pygame.transform.scale(self.x_img, (piece_size, piece_size))
             self.o_img = pygame.transform.scale(self.o_img, (piece_size, piece_size))
             
-            # Calculate positions
             self.board_x = (width - self.board_img.get_width()) // 2
             self.board_y = (height - self.board_img.get_height()) // 2
             
@@ -82,99 +118,139 @@ class TournamentVideoMaker:
                     y = self.board_y + row * cell_height + cell_height // 2 - piece_size // 2
                     self.cell_positions.append((x, y))
             
-            # Video writer setup
+            self.model1_img = None
+            self.model2_img = None
+            self.model1_name = None
+            self.model2_name = None
+            
             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             self.video_writer = None
-            self.logger.info("Video writer initialized")
             
         except Exception as e:
             self.logger.error(f"Error during initialization: {str(e)}", exc_info=True)
             raise
 
+    def _apply_color_overlay(self, original_surface, overlay_color):
+        result = original_surface.copy()
+        overlay = pygame.Surface(original_surface.get_size(), pygame.SRCALPHA)
+        overlay.fill(overlay_color)
+        result.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        return result
+
     def _load_model_image(self, model_name):
-        """Load and scale model image to fit in a quarter of the screen width"""
         formatted_name = model_name.replace("-", "_").replace(".", "_") + ".png"
         try:
             image = pygame.image.load(formatted_name).convert_alpha()
+            target_height = self.height * 0.8
+            aspect_ratio = image.get_width() / image.get_height()
+            target_width = int(target_height * aspect_ratio)
             
-            # Calculate target dimensions maintaining aspect ratio
-            target_width = self.width // 4  # Quarter of screen width
-            aspect_ratio = image.get_height() / image.get_width()
-            target_height = int(target_width * aspect_ratio)
+            max_width = self.width * 0.2
+            if target_width > max_width:
+                target_width = max_width
+                target_height = int(target_width / aspect_ratio)
             
-            # Ensure height doesn't exceed screen height
-            if target_height > self.height * 0.6:  # Limit to 60% of screen height
-                target_height = int(self.height * 0.6)
-                target_width = int(target_height / aspect_ratio)
-            
-            return pygame.transform.scale(image, (target_width, target_height))
+            return pygame.transform.scale(image, (target_width, int(target_height)))
         except Exception as e:
             self.logger.error(f"Error loading model image {formatted_name}: {str(e)}")
-            # Create a placeholder surface if image loading fails
-            placeholder = pygame.Surface((self.width // 4, self.height // 3))
+            placeholder = pygame.Surface((int(self.width * 0.2), int(self.height * 0.8)))
             placeholder.fill((50, 50, 50))
             return placeholder
-    
+
     def create_intro(self, model1_name, model2_name, duration_seconds=5):
         self.logger.info(f"Creating intro sequence for {model1_name} vs {model2_name}")
-        frames = int(duration_seconds * self.fps)
         
+        self.model1_name = model1_name
+        self.model2_name = model2_name
+        self.model1_img = self._load_model_image(model1_name)
+        self.model2_img = self._load_model_image(model2_name)
+        
+        frames = int(duration_seconds * self.fps)
         try:
-            # Load model images
-            model1_img = self._load_model_image(model1_name)
-            model2_img = self._load_model_image(model2_name)
-            
-            # Calculate vertical positions to center images
-            img_y = (self.height - model1_img.get_height()) // 2
-            
-            # Calculate horizontal positions (centered in each quarter)
-            img1_x = (self.width // 4) - (model1_img.get_width() // 2)
-            img2_x = (3 * self.width // 4) - (model2_img.get_width() // 2)
-            
             for frame in range(frames):
                 self.screen.fill((0, 0, 0))
+                self._draw_model_images()
                 
-                # Draw title
                 title = self.font_big.render("TicTacToe Tournament", True, (255, 255, 255))
                 self.screen.blit(title, (self.width//2 - title.get_width()//2, self.height//8))
                 
-                # Draw model images
-                self.screen.blit(model1_img, (img1_x, img_y))
-                self.screen.blit(model2_img, (img2_x, img_y))
-                
-                # Draw model names
                 name1_text = self.font.render(model1_name, True, (255, 255, 255))
                 name2_text = self.font.render(model2_name, True, (255, 255, 255))
                 vs_text = self.font_big.render("VS", True, (255, 0, 0))
                 
-                # Position text below images
-                text_y = img_y + model1_img.get_height() + 20
+                text_y = self.height * 0.75
                 self.screen.blit(name1_text, (self.width//4 - name1_text.get_width()//2, text_y))
                 self.screen.blit(vs_text, (self.width//2 - vs_text.get_width()//2, text_y))
                 self.screen.blit(name2_text, (3*self.width//4 - name2_text.get_width()//2, text_y))
                 
                 self._write_frame()
-                
-            self.logger.info("Intro sequence created successfully")
         except Exception as e:
             self.logger.error(f"Error creating intro: {str(e)}", exc_info=True)
             raise
 
-    def _apply_color_overlay(self, original_surface, overlay_color):
-        """
-        Applies a semi-transparent color overlay to the original surface
-        """
-        # Create a copy of the original surface
-        result = original_surface.copy()
-        
-        # Create overlay surface with alpha
-        overlay = pygame.Surface(original_surface.get_size(), pygame.SRCALPHA)
-        overlay.fill(overlay_color)
-        
-        # Blit the overlay onto the result surface
-        result.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-        
-        return result
+    def _draw_model_images(self, winner=None, final_winner=False):
+        if self.model1_img and self.model2_img:
+            img_y = (self.height - self.model1_img.get_height()) // 2
+            margin = 20
+            border_thickness = 4
+
+            # Model 1 borders
+            border_rect_1 = pygame.Rect(
+                margin - border_thickness,
+                img_y - border_thickness,
+                self.model1_img.get_width() + (border_thickness * 2),
+                self.model1_img.get_height() + (border_thickness * 2)
+            )
+            pygame.draw.rect(self.screen, self.NATURE_GREEN, border_rect_1, border_thickness)
+
+            if winner == 'X':
+                winner_rect_1 = pygame.Rect(
+                    margin - (border_thickness * 2),
+                    img_y - (border_thickness * 2),
+                    self.model1_img.get_width() + (border_thickness * 4),
+                    self.model1_img.get_height() + (border_thickness * 4)
+                )
+                pygame.draw.rect(self.screen, self.GOLDEN, winner_rect_1, border_thickness)
+
+                if final_winner:
+                    final_rect_1 = pygame.Rect(
+                        margin - (border_thickness * 3),
+                        img_y - (border_thickness * 3),
+                        self.model1_img.get_width() + (border_thickness * 6),
+                        self.model1_img.get_height() + (border_thickness * 6)
+                    )
+                    pygame.draw.rect(self.screen, self.GOLDEN, final_rect_1, border_thickness)
+
+            # Model 2 borders
+            border_rect_2 = pygame.Rect(
+                self.width - self.model2_img.get_width() - margin - border_thickness,
+                img_y - border_thickness,
+                self.model2_img.get_width() + (border_thickness * 2),
+                self.model2_img.get_height() + (border_thickness * 2)
+            )
+            pygame.draw.rect(self.screen, self.SEA_BLUE, border_rect_2, border_thickness)
+
+            if winner == 'O':
+                winner_rect_2 = pygame.Rect(
+                    self.width - self.model2_img.get_width() - margin - (border_thickness * 2),
+                    img_y - (border_thickness * 2),
+                    self.model2_img.get_width() + (border_thickness * 4),
+                    self.model2_img.get_height() + (border_thickness * 4)
+                )
+                pygame.draw.rect(self.screen, self.GOLDEN, winner_rect_2, border_thickness)
+
+                if final_winner:
+                    final_rect_2 = pygame.Rect(
+                        self.width - self.model2_img.get_width() - margin - (border_thickness * 3),
+                        img_y - (border_thickness * 3),
+                        self.model2_img.get_width() + (border_thickness * 6),
+                        self.model2_img.get_height() + (border_thickness * 6)
+                    )
+                    pygame.draw.rect(self.screen, self.GOLDEN, final_rect_2, border_thickness)
+
+            # Draw the actual images
+            self.screen.blit(self.model1_img, (margin, img_y))
+            self.screen.blit(self.model2_img, (self.width - self.model2_img.get_width() - margin, img_y))
 
     def render_game(self, game, frame_duration=1):
         self.logger.debug(f"Rendering game state: {game.board}")
@@ -183,10 +259,11 @@ class TournamentVideoMaker:
             for _ in range(frames):
                 self.screen.fill((0, 0, 0))
                 
-                # Draw tinted board
+                winner = game.winner if game.game_over else None
+                self._draw_model_images(winner, False)
+                
                 self.screen.blit(self.board_img, (self.board_x, self.board_y))
                 
-                # Draw golden grid lines
                 board_width = self.board_img.get_width()
                 board_height = self.board_img.get_height()
                 
@@ -194,17 +271,17 @@ class TournamentVideoMaker:
                 for i in range(1, 3):
                     x = self.board_x + i * (board_width // 3)
                     pygame.draw.line(self.screen, self.GOLDEN,
-                                   (x, self.board_y),
-                                   (x, self.board_y + board_height),
-                                   3)
+                                (x, self.board_y),
+                                (x, self.board_y + board_height),
+                                3)
                 
                 # Horizontal lines
                 for i in range(1, 3):
                     y = self.board_y + i * (board_height // 3)
                     pygame.draw.line(self.screen, self.GOLDEN,
-                                   (self.board_x, y),
-                                   (self.board_x + board_width, y),
-                                   3)
+                                (self.board_x, y),
+                                (self.board_x + board_width, y),
+                                3)
                 
                 # Draw pieces
                 for i, piece in enumerate(game.board):
@@ -232,16 +309,22 @@ class TournamentVideoMaker:
             raise
 
     def create_round_intro(self, round_num, model1_score, model2_score, ties, duration_seconds=3):
-        self.logger.info(f"Creating round {round_num} intro. Scores: {model1_score}-{model2_score} (Ties: {ties})")
+        self.logger.info(f"Creating round {round_num} intro")
+        
         frames = int(duration_seconds * self.fps)
         try:
             for frame in range(frames):
                 self.screen.fill((0, 0, 0))
+                
+                self._draw_model_images()
+                
                 round_text = self.font_big.render(f"Round {round_num}", True, (255, 255, 255))
-                score_text = self.font.render(f"Score: {model1_score} - {model2_score} (Ties: {ties})", True, (255, 255, 255))
+                score_text = self.font.render(f"{model1_score} - {model2_score}", True, (255, 255, 255))
+                ties_text = self.font.render(f"Ties: {ties}", True, (255, 255, 255))
                 
                 self.screen.blit(round_text, (self.width//2 - round_text.get_width()//2, self.height//3))
                 self.screen.blit(score_text, (self.width//2 - score_text.get_width()//2, self.height//2))
+                self.screen.blit(ties_text, (self.width//2 - ties_text.get_width()//2, self.height * 0.8))
                 
                 self._write_frame()
         except Exception as e:
@@ -249,11 +332,15 @@ class TournamentVideoMaker:
             raise
     
     def create_winner_announcement(self, winner_name, score1, score2, ties, duration_seconds=5):
-        self.logger.info(f"Creating winner announcement. Winner: {winner_name}, Final score: {score1}-{score2} (Ties: {ties})")
+        self.logger.info(f"Creating winner announcement for {winner_name}")
+        
         frames = int(duration_seconds * self.fps)
         try:
             for frame in range(frames):
                 self.screen.fill((0, 0, 0))
+                
+                winner = 'X' if winner_name == self.model1_name else 'O' if winner_name == self.model2_name else None
+                self._draw_model_images(winner, True)
                 
                 if winner_name == "Tie":
                     title = self.font_big.render("It's a Tie!", True, (255, 215, 0))
@@ -272,9 +359,10 @@ class TournamentVideoMaker:
 
     def start_video(self, output_path):
         self.logger.info(f"Starting video writing to {output_path}")
+        self.final_output_path = output_path
         try:
             self.video_writer = cv2.VideoWriter(
-                output_path,
+                self.temp_video_path,
                 self.fourcc,
                 self.fps,
                 (self.width, self.height)
@@ -294,35 +382,46 @@ class TournamentVideoMaker:
             raise
 
     def close(self):
-        self.logger.info("Closing video maker")
-        if self.video_writer:
-            self.video_writer.release()
-        pygame.quit()
-
-def play_game(model1_starts):
-    logger = logging.getLogger(__name__)
-    logger.info(f"Starting new game. Model 1 starts: {model1_starts}")
-    
-    game = TicTacToeGame(model1_starts)
-    
-    while not game.game_over:
-        valid_moves = game.get_valid_moves()
-        if not valid_moves:
-            logger.info("Game ended in a tie - no valid moves remaining")
-            break
+        self.logger.info("Closing video maker and finalizing video with audio")
+        try:
+            # Close video writer
+            if self.video_writer:
+                self.video_writer.release()
             
-        move = random.choice(valid_moves)
-        logger.debug(f"Player {game.current_player} making move at position {move}")
-        game.make_move(move, game.current_player)
-        
-    logger.info(f"Game ended. Winner: {game.winner if game.winner else 'Tie'}")
-    
-    if game.winner == 'X':
-        return 1  # Model 1 wins
-    elif game.winner == 'O':
-        return 2  # Model 2 wins
-    else:
-        return 0  # Tie
+            # Add background music using moviepy
+            video = VideoFileClip(self.temp_video_path)
+            background_music = AudioFileClip("video_music.mp3")
+            
+            # Loop the music if it's shorter than the video
+            if background_music.duration < video.duration:
+                repeats = int(video.duration / background_music.duration) + 1
+                background_music = AudioFileClip("video_music.mp3").loop(repeats)
+            
+            # Trim music if it's longer than video
+            background_music = background_music.subclip(0, video.duration)
+            
+            # Set music volume to 0.3 (30% of original volume)
+            background_music = background_music.volumex(0.3)
+            
+            # Combine video with background music
+            final_video = video.set_audio(background_music)
+            final_video.write_videofile(self.final_output_path, codec='libx264')
+            
+            # Cleanup
+            video.close()
+            background_music.close()
+            
+            # Remove temporary files
+            try:
+                os.remove(self.temp_video_path)
+            except Exception as e:
+                self.logger.warning(f"Error removing temporary files: {str(e)}")
+            
+            pygame.quit()
+            
+        except Exception as e:
+            self.logger.error(f"Error during video finalization: {str(e)}", exc_info=True)
+            raise
 
 def main():
     logger = logging.getLogger(__name__)
@@ -340,14 +439,11 @@ def main():
     logger.info(f"Tournament config: {MODEL1_NAME} vs {MODEL2_NAME}, {NUM_GAMES} games")
     
     try:
-        # Initialize video maker
         video_maker = TournamentVideoMaker()
         video_maker.start_video(OUTPUT_PATH)
         
-        # Create intro
         video_maker.create_intro(MODEL1_NAME, MODEL2_NAME)
         
-        # Play games and record
         score1 = score2 = ties = 0
         for game_num in range(NUM_GAMES):
             logger.info(f"Starting game {game_num + 1} of {NUM_GAMES}")
@@ -359,15 +455,12 @@ def main():
             while not game.game_over:
                 valid_moves = game.get_valid_moves()
                 if not valid_moves:
-                    logger.info("No valid moves remaining")
                     break
                     
                 move = random.choice(valid_moves)
-                logger.debug(f"Move selected: {move}")
                 game.make_move(move, game.current_player)
                 video_maker.render_game(game, frame_duration=0.5)
             
-            # Update scores
             if game.winner == 'X':
                 score1 += 1
                 logger.info(f"Game {game_num + 1} winner: Model 1")
@@ -380,7 +473,6 @@ def main():
             
             video_maker.render_game(game, frame_duration=2)
         
-        # Show winner
         if score1 > score2:
             winner_name = MODEL1_NAME
         elif score2 > score1:
@@ -393,7 +485,6 @@ def main():
         
         video_maker.create_winner_announcement(winner_name, score1, score2, ties)
         
-        # Cleanup
         video_maker.close()
         logger.info(f"Tournament video created successfully: {OUTPUT_PATH}")
         
