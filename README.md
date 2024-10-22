@@ -65,8 +65,8 @@ cyber-ragnarok/
 
 1. **Installation**
 ```bash
-git clone https://github.com/yourusername/llm-arena
-cd llm-arena
+git clone https://github.com/ezequielsobrino/cyber-ragnarok
+cd cyber-ragnarok
 pip install -r requirements.txt
 ```
 
@@ -79,7 +79,7 @@ GROQ_API_KEY=your_key_here
 
 3. **Run a Tournament**
 ```bash
-python run_tournament.py --game tic_tac_toe --model1 llama-70b --model2 llama-8b --games 5
+python main.py
 ```
 
 ## 🎯 Adding New Games
