@@ -26,21 +26,37 @@ class TournamentVideoMaker:
         self.font_size = int(height * 0.05)
         self.font_large = int(height * 0.08)
         
+        # Define custom colors with alpha for overlay
+        self.WOOD_COLOR = (222, 184, 135, 128)    # Tan/light wood color with alpha
+        self.NATURE_GREEN = (76, 153, 0, 255)     # Natural green without transparency for X pieces
+        self.SEA_BLUE = (0, 105, 148, 255)        # Sea blue without transparency for O pieces
+        self.BLOOD_RED = (139, 0, 0)              # Blood red (no alpha needed)
+        self.GOLDEN = (255, 215, 0)               # Golden (no alpha needed)
+        
         try:
-            # Initialize Pygame
+            # Initialize Pygame with a display mode
             pygame.init()
+            pygame.display.set_mode((width, height))  # Necesario para convertir las imágenes
             self.screen = pygame.Surface((width, height))
             self.clock = pygame.time.Clock()
             self.font = pygame.font.Font(None, self.font_size)
             self.font_big = pygame.font.Font(None, self.font_large)
             self.logger.info("Pygame initialized successfully")
             
-            # Load game images
-            self.logger.info("Loading game images...")
-            self.board_img = pygame.image.load('tic_tac_toe_board.png')
-            self.x_img = pygame.image.load('x_image.png')
-            self.o_img = pygame.image.load('o_image.png')
-            self.logger.info("Game images loaded successfully")
+            # Load and tint game images
+            self.logger.info("Loading and tinting game images...")
+            
+            # Load original images
+            original_board = pygame.image.load('tic_tac_toe_board.png').convert_alpha()
+            original_x = pygame.image.load('x_image.png').convert_alpha()
+            original_o = pygame.image.load('o_image.png').convert_alpha()
+            
+            # Apply color overlays
+            self.board_img = self._apply_color_overlay(original_board, self.WOOD_COLOR)
+            self.x_img = self._apply_color_overlay(original_x, self.NATURE_GREEN)
+            self.o_img = self._apply_color_overlay(original_o, self.SEA_BLUE)
+            
+            self.logger.info("Game images tinted successfully")
             
             # Scale images
             board_scale = min(width * 0.4 / self.board_img.get_width(), 
@@ -52,7 +68,6 @@ class TournamentVideoMaker:
             piece_size = int(min(self.board_img.get_width(), self.board_img.get_height()) * 0.25)
             self.x_img = pygame.transform.scale(self.x_img, (piece_size, piece_size))
             self.o_img = pygame.transform.scale(self.o_img, (piece_size, piece_size))
-            self.logger.info("Images scaled successfully")
             
             # Calculate positions
             self.board_x = (width - self.board_img.get_width()) // 2
@@ -66,7 +81,6 @@ class TournamentVideoMaker:
                     x = self.board_x + col * cell_width + cell_width // 2 - piece_size // 2
                     y = self.board_y + row * cell_height + cell_height // 2 - piece_size // 2
                     self.cell_positions.append((x, y))
-            self.logger.info("Board positions calculated")
             
             # Video writer setup
             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -98,21 +112,61 @@ class TournamentVideoMaker:
         except Exception as e:
             self.logger.error(f"Error creating intro: {str(e)}", exc_info=True)
             raise
-    
+
+    def _apply_color_overlay(self, original_surface, overlay_color):
+        """
+        Applies a semi-transparent color overlay to the original surface
+        """
+        # Create a copy of the original surface
+        result = original_surface.copy()
+        
+        # Create overlay surface with alpha
+        overlay = pygame.Surface(original_surface.get_size(), pygame.SRCALPHA)
+        overlay.fill(overlay_color)
+        
+        # Blit the overlay onto the result surface
+        result.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        
+        return result
+
     def render_game(self, game, frame_duration=1):
         self.logger.debug(f"Rendering game state: {game.board}")
         frames = int(frame_duration * self.fps)
         try:
             for _ in range(frames):
                 self.screen.fill((0, 0, 0))
+                
+                # Draw tinted board
                 self.screen.blit(self.board_img, (self.board_x, self.board_y))
                 
+                # Draw golden grid lines
+                board_width = self.board_img.get_width()
+                board_height = self.board_img.get_height()
+                
+                # Vertical lines
+                for i in range(1, 3):
+                    x = self.board_x + i * (board_width // 3)
+                    pygame.draw.line(self.screen, self.GOLDEN,
+                                   (x, self.board_y),
+                                   (x, self.board_y + board_height),
+                                   3)  # Increased thickness for better visibility
+                
+                # Horizontal lines
+                for i in range(1, 3):
+                    y = self.board_y + i * (board_height // 3)
+                    pygame.draw.line(self.screen, self.GOLDEN,
+                                   (self.board_x, y),
+                                   (self.board_x + board_width, y),
+                                   3)  # Increased thickness for better visibility
+                
+                # Draw pieces
                 for i, piece in enumerate(game.board):
                     if piece == 'X':
                         self.screen.blit(self.x_img, self.cell_positions[i])
                     elif piece == 'O':
                         self.screen.blit(self.o_img, self.cell_positions[i])
                 
+                # Draw winning line
                 if game.winning_line:
                     self.logger.debug(f"Drawing winning line: {game.winning_line}")
                     start_pos = (
@@ -123,7 +177,7 @@ class TournamentVideoMaker:
                         self.cell_positions[game.winning_line[2]][0] + self.x_img.get_width()//2,
                         self.cell_positions[game.winning_line[2]][1] + self.x_img.get_height()//2
                     )
-                    pygame.draw.line(self.screen, (255, 0, 0), start_pos, end_pos, 5)
+                    pygame.draw.line(self.screen, self.BLOOD_RED, start_pos, end_pos, 5)
                 
                 self._write_frame()
         except Exception as e:
@@ -230,7 +284,7 @@ def main():
     # Configuration
     MODEL1_NAME = "llama-3.1-70b-versatile"
     MODEL2_NAME = "llama-3.1-8b-instant"
-    NUM_GAMES = 10
+    NUM_GAMES = 1
     
     model1_clean = MODEL1_NAME.replace("-", "_").replace(".", "_")
     model2_clean = MODEL2_NAME.replace("-", "_").replace(".", "_")
