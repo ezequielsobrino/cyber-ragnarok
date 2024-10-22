@@ -36,7 +36,7 @@ class TournamentVideoMaker:
         try:
             # Initialize Pygame with a display mode
             pygame.init()
-            pygame.display.set_mode((width, height))  # Necesario para convertir las imágenes
+            pygame.display.set_mode((width, height))
             self.screen = pygame.Surface((width, height))
             self.clock = pygame.time.Clock()
             self.font = pygame.font.Font(None, self.font_size)
@@ -90,24 +90,71 @@ class TournamentVideoMaker:
         except Exception as e:
             self.logger.error(f"Error during initialization: {str(e)}", exc_info=True)
             raise
+
+    def _load_model_image(self, model_name):
+        """Load and scale model image to fit in a quarter of the screen width"""
+        formatted_name = model_name.replace("-", "_").replace(".", "_") + ".png"
+        try:
+            image = pygame.image.load(formatted_name).convert_alpha()
+            
+            # Calculate target dimensions maintaining aspect ratio
+            target_width = self.width // 4  # Quarter of screen width
+            aspect_ratio = image.get_height() / image.get_width()
+            target_height = int(target_width * aspect_ratio)
+            
+            # Ensure height doesn't exceed screen height
+            if target_height > self.height * 0.6:  # Limit to 60% of screen height
+                target_height = int(self.height * 0.6)
+                target_width = int(target_height / aspect_ratio)
+            
+            return pygame.transform.scale(image, (target_width, target_height))
+        except Exception as e:
+            self.logger.error(f"Error loading model image {formatted_name}: {str(e)}")
+            # Create a placeholder surface if image loading fails
+            placeholder = pygame.Surface((self.width // 4, self.height // 3))
+            placeholder.fill((50, 50, 50))
+            return placeholder
     
     def create_intro(self, model1_name, model2_name, duration_seconds=5):
         self.logger.info(f"Creating intro sequence for {model1_name} vs {model2_name}")
         frames = int(duration_seconds * self.fps)
+        
         try:
+            # Load model images
+            model1_img = self._load_model_image(model1_name)
+            model2_img = self._load_model_image(model2_name)
+            
+            # Calculate vertical positions to center images
+            img_y = (self.height - model1_img.get_height()) // 2
+            
+            # Calculate horizontal positions (centered in each quarter)
+            img1_x = (self.width // 4) - (model1_img.get_width() // 2)
+            img2_x = (3 * self.width // 4) - (model2_img.get_width() // 2)
+            
             for frame in range(frames):
                 self.screen.fill((0, 0, 0))
+                
+                # Draw title
                 title = self.font_big.render("TicTacToe Tournament", True, (255, 255, 255))
-                name1_text = self.font_big.render(model1_name, True, (255, 255, 255))
-                name2_text = self.font_big.render(model2_name, True, (255, 255, 255))
+                self.screen.blit(title, (self.width//2 - title.get_width()//2, self.height//8))
+                
+                # Draw model images
+                self.screen.blit(model1_img, (img1_x, img_y))
+                self.screen.blit(model2_img, (img2_x, img_y))
+                
+                # Draw model names
+                name1_text = self.font.render(model1_name, True, (255, 255, 255))
+                name2_text = self.font.render(model2_name, True, (255, 255, 255))
                 vs_text = self.font_big.render("VS", True, (255, 0, 0))
                 
-                self.screen.blit(title, (self.width//2 - title.get_width()//2, self.height//4))
-                self.screen.blit(name1_text, (self.width//4 - name1_text.get_width()//2, self.height//2))
-                self.screen.blit(vs_text, (self.width//2 - vs_text.get_width()//2, self.height//2))
-                self.screen.blit(name2_text, (3*self.width//4 - name2_text.get_width()//2, self.height//2))
+                # Position text below images
+                text_y = img_y + model1_img.get_height() + 20
+                self.screen.blit(name1_text, (self.width//4 - name1_text.get_width()//2, text_y))
+                self.screen.blit(vs_text, (self.width//2 - vs_text.get_width()//2, text_y))
+                self.screen.blit(name2_text, (3*self.width//4 - name2_text.get_width()//2, text_y))
                 
                 self._write_frame()
+                
             self.logger.info("Intro sequence created successfully")
         except Exception as e:
             self.logger.error(f"Error creating intro: {str(e)}", exc_info=True)
@@ -149,7 +196,7 @@ class TournamentVideoMaker:
                     pygame.draw.line(self.screen, self.GOLDEN,
                                    (x, self.board_y),
                                    (x, self.board_y + board_height),
-                                   3)  # Increased thickness for better visibility
+                                   3)
                 
                 # Horizontal lines
                 for i in range(1, 3):
@@ -157,7 +204,7 @@ class TournamentVideoMaker:
                     pygame.draw.line(self.screen, self.GOLDEN,
                                    (self.board_x, y),
                                    (self.board_x + board_width, y),
-                                   3)  # Increased thickness for better visibility
+                                   3)
                 
                 # Draw pieces
                 for i, piece in enumerate(game.board):
