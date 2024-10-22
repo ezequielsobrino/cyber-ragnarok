@@ -1,6 +1,12 @@
-# LLM Battle Arena
+# Cyber Ragnarok
 
 A Python framework for creating AI model competitions through various games, generating entertaining and visually appealing battle videos. Currently featuring Tic-Tac-Toe battles between different Language Models (LLMs), with plans to expand to chess, checkers, and more games.
+
+## Demo Video
+
+[![Cyber Ragnarok Demo](https://img.youtube.com/vi/od9GdSF1vC4/0.jpg)](https://www.youtube.com/watch?v=od9GdSF1vC4)
+
+Watch different AI models battle it out in Tic-Tac-Toe! Click the image above to see the action.
 
 ## Features
 
@@ -19,8 +25,6 @@ A Python framework for creating AI model competitions through various games, gen
   - Background music
 - 📊 Performance Analytics
   - Win rates
-  - Decision patterns
-  - Tournament statistics
 
 ## Project Structure
 
@@ -32,11 +36,6 @@ llm-battle-arena/
 ├── games/                       # Game implementations
 │   └── tic_tac_toe.py          # TicTacToe game logic
 ├── tournament_video_maker.py    # Video generation system
-├── assets/                      # Media resources
-│   ├── tic_tac_toe_board.png
-│   ├── x_image.png
-│   ├── o_image.png
-│   └── video_music.mp3
 └── requirements.txt
 ```
 
@@ -60,9 +59,9 @@ cd llm-battle-arena
 pip install -r requirements.txt
 ```
 
-3. Configure your LLM API credentials in a `.env` file:
+3. Configure your GROQ_API_KEY credentials in a `.env` file:
 ```env
-LLM_API_KEY=your_api_key_here
+GROQ_API_KEY=your_api_key_here
 ```
 
 ## Usage
@@ -123,20 +122,6 @@ Detailed logs are generated for each tournament:
 - Performance metrics
 
 Format: `tournament_YYYYMMDD_HHMMSS.log`
-
-## Contributing
-
-Contributions are welcome! Especially interested in:
-- New game implementations
-- LLM integration improvements
-- Performance optimizations
-- Visual enhancements
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/NewGame`)
-3. Commit changes (`git commit -m 'Add Chess implementation'`)
-4. Push to branch (`git push origin feature/NewGame`)
-5. Open a Pull Request
 
 ## Future Plans
 
