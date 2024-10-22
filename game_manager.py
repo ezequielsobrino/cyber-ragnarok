@@ -21,7 +21,7 @@ class GameManager:
         self.selected_character = None
         self.selected_game = None
         self.current_round = 0
-        self.total_rounds = 3  # Valor por defecto
+        self.total_rounds = 10  # Valor por defecto
         self.player_score = 0
         self.ai_score = 0
         self.player_starts = True  # Nueva variable para controlar quien empieza
