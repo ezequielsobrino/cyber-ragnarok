@@ -3,9 +3,10 @@ import cv2
 import random
 import logging
 from datetime import datetime
-from moviepy.editor import VideoFileClip, AudioFileClip, CompositeVideoClip
-from pydub import AudioSegment
+from moviepy.editor import VideoFileClip, AudioFileClip
 import os
+
+from games.tic_tac_toe import TicTacToeGame
 
 # Configure logging
 logging.basicConfig(
@@ -16,43 +17,6 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-
-class TicTacToeGame:
-    def __init__(self, model1_starts=True):
-        self.board = [' '] * 9
-        self.current_player = 'X' if model1_starts else 'O'
-        self.game_over = False
-        self.winner = None
-        self.winning_line = None
-
-    def get_valid_moves(self):
-        return [i for i, piece in enumerate(self.board) if piece == ' ']
-
-    def make_move(self, position, player):
-        if self.board[position] == ' ' and not self.game_over:
-            self.board[position] = player
-            if self._check_winner(player):
-                self.game_over = True
-                self.winner = player
-            elif not self.get_valid_moves():
-                self.game_over = True
-            else:
-                self.current_player = 'O' if player == 'X' else 'X'
-            return True
-        return False
-
-    def _check_winner(self, player):
-        win_combinations = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Horizontal
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Vertical
-            [0, 4, 8], [2, 4, 6]              # Diagonal
-        ]
-        
-        for line in win_combinations:
-            if all(self.board[i] == player for i in line):
-                self.winning_line = line
-                return True
-        return False
 
 class TournamentVideoMaker:
     def __init__(self, width=1920, height=1080, fps=30):
@@ -66,6 +30,9 @@ class TournamentVideoMaker:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.temp_video_path = f"temp_video_{timestamp}.mp4"
         self.final_output_path = None
+
+        # Define assets folder path
+        self.assets_path = "assets"
         
         self.width = width
         self.height = height
@@ -88,10 +55,10 @@ class TournamentVideoMaker:
             self.font = pygame.font.Font(None, self.font_size)
             self.font_big = pygame.font.Font(None, self.font_large)
             
-            # Load and tint images
-            original_board = pygame.image.load('tic_tac_toe_board.png').convert_alpha()
-            original_x = pygame.image.load('x_image.png').convert_alpha()
-            original_o = pygame.image.load('o_image.png').convert_alpha()
+            # Load and tint images from assets folder
+            original_board = pygame.image.load(os.path.join(self.assets_path, 'tic_tac_toe_board.png')).convert_alpha()
+            original_x = pygame.image.load(os.path.join(self.assets_path, 'x_image.png')).convert_alpha()
+            original_o = pygame.image.load(os.path.join(self.assets_path, 'o_image.png')).convert_alpha()
             
             self.board_img = self._apply_color_overlay(original_board, self.WOOD_COLOR)
             self.x_img = self._apply_color_overlay(original_x, self.NATURE_GREEN)
@@ -125,8 +92,7 @@ class TournamentVideoMaker:
             self.model2_name = None
             
             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            self.video_writer = None
-            
+            self.video_writer = None  
         except Exception as e:
             self.logger.error(f"Error during initialization: {str(e)}", exc_info=True)
             raise
@@ -141,7 +107,7 @@ class TournamentVideoMaker:
     def _load_model_image(self, model_name):
         formatted_name = model_name.replace("-", "_").replace(".", "_") + ".png"
         try:
-            image = pygame.image.load(formatted_name).convert_alpha()
+            image = pygame.image.load(os.path.join(self.assets_path, formatted_name)).convert_alpha()
             target_height = self.height * 0.8
             aspect_ratio = image.get_width() / image.get_height()
             target_width = int(target_height * aspect_ratio)
@@ -408,12 +374,12 @@ class TournamentVideoMaker:
             
             # Add background music using moviepy
             video = VideoFileClip(self.temp_video_path)
-            background_music = AudioFileClip("video_music.mp3")
+            background_music = AudioFileClip(os.path.join(self.assets_path, "video_music.mp3"))
             
             # Loop the music if it's shorter than the video
             if background_music.duration < video.duration:
                 repeats = int(video.duration / background_music.duration) + 1
-                background_music = AudioFileClip("video_music.mp3").loop(repeats)
+                background_music = AudioFileClip(os.path.join(self.assets_path, "video_music.mp3")).loop(repeats)
             
             # Trim music if it's longer than video
             background_music = background_music.subclip(0, video.duration)
@@ -448,7 +414,7 @@ def main():
     # Configuration
     MODEL1_NAME = "llama-3.1-70b-versatile"
     MODEL2_NAME = "llama-3.1-8b-instant"
-    NUM_GAMES = 10
+    NUM_GAMES = 1
     
     model1_clean = MODEL1_NAME.replace("-", "_").replace(".", "_")
     model2_clean = MODEL2_NAME.replace("-", "_").replace(".", "_")
