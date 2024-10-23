@@ -6,6 +6,7 @@ from datetime import datetime
 from moviepy.editor import VideoFileClip, AudioFileClip
 import os
 
+from brains.providers.anthropic_provider import AnthropicProvider
 from brains.providers.groq_provider import GroqProvider
 from brains.tic_tac_toe_brain import TicTacToeBrain
 from games.tic_tac_toe import TicTacToeGame
@@ -414,8 +415,12 @@ def main():
     logger.info("Starting tournament")
     
     # Configuration
-    MODEL1_NAME = "llama-3.1-70b-versatile"
-    MODEL2_NAME = "llama-3.1-8b-instant"
+    # claude-3-5-sonnet-20241022
+    # claude-3-haiku-20240307
+    # llama-3.1-8b-instant
+    # llama-3.1-70b-versatile
+    MODEL1_NAME = "claude-3-haiku-20240307"
+    MODEL2_NAME = "claude-3-5-sonnet-20241022"
     NUM_GAMES = 10
     
     model1_clean = MODEL1_NAME.replace("-", "_").replace(".", "_")
@@ -426,8 +431,8 @@ def main():
     
     try:
         # Initialize Groq providers with different models
-        model1_provider = GroqProvider(model_id=MODEL1_NAME)
-        model2_provider = GroqProvider(model_id=MODEL2_NAME)
+        model1_provider = AnthropicProvider(model_id=MODEL1_NAME)
+        model2_provider = AnthropicProvider(model_id=MODEL2_NAME)
 
         # Initialize LLM providers and brains
         model1_brain = TicTacToeBrain(llm_provider=model1_provider)  
