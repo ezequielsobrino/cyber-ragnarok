@@ -11,9 +11,14 @@ class GroqProvider(LLMProvider):
 
     def get_completion(self, prompt: str) -> str:
         response = self.client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
             model=self.model_id,
-            temperature=0.7,
             max_tokens=10,
+            temperature=0.7,
+            messages=[
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ]
         )
         return response.choices[0].message.content.strip()
