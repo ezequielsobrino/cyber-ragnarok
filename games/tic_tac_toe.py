@@ -1,3 +1,7 @@
+
+from games.renderers.tictactoe_renderer import TicTacToeRenderer
+
+
 class TicTacToeGame:
     def __init__(self, model1_starts=True):
         self.board = [' '] * 9
@@ -5,6 +9,10 @@ class TicTacToeGame:
         self.game_over = False
         self.winner = None
         self.winning_line = None
+        self.renderer = None  # Will be set by GameScreen
+    
+    def initialize_renderer(self, width: int, height: int):
+        self.renderer = TicTacToeRenderer(width, height)
 
     def get_valid_moves(self):
         return [i for i, piece in enumerate(self.board) if piece == ' ']

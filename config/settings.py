@@ -30,11 +30,11 @@ class ModelConfig:
 class MatchConfig:
     def __init__(self):
         # Match participants
-        self.MODEL1_NAME = "gpt-4o-mini"
-        self.MODEL2_NAME = "gpt-4o"
+        self.MODEL1_NAME = "llama-3.1-70b-versatile"
+        self.MODEL2_NAME = "llama-3.1-70b-versatile"
         
         # Match settings
-        self.NUM_GAMES = 10
+        self.NUM_GAMES = 1
         
         # Provider information
         self._set_provider_info()
