@@ -13,9 +13,9 @@ class WinnerScreen(BaseScreen):
         self._draw_model_images(model1_img, model2_img, winner, True)
         
         if winner_name == "Tie":
-            title = self.font_big.render("It's a Tie!", True, self.GOLDEN)
+            title = self.font_big.render("It's a Tie!", True, self.NORDIC_GOLD)
         else:
-            title = self.font_big.render(f"{winner_name} Wins!", True, self.GOLDEN)
+            title = self.font_big.render(f"{winner_name} Wins!", True, self.NORDIC_GOLD)
         
         score_text = self.font.render(f"Final Score: {score1} - {score2} (Ties: {ties})", True, self.TEXT_COLOR)
         
