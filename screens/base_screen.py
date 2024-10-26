@@ -1,5 +1,3 @@
-
-
 import pygame
 from abc import ABC, abstractmethod
 import math
@@ -12,7 +10,18 @@ class BaseScreen(ABC):
         self.fps = fps
         self.assets_manager = assets_manager
         self.screen = pygame.Surface((width, height))
+        
+        # Control de velocidad de animaciones
         self.time = 0
+        self.time_speed = 0.05         # Velocidad general de animaciones
+        self.particle_speed = 1.0      # Velocidad de las partículas
+        self.particle_life = 40        # Duración de las partículas
+        self.energy_field_speed = 1    # Velocidad de pulsación
+        self.lightning_probability = 0.3  # Probabilidad de rayos
+        self.max_particles = 0         # Partículas por frame
+        self.lightning_offset = 10     # Desviación de los rayos
+        self.energy_field_amplitude = 8  # Amplitud de pulsación
+        
         self.particles = []  # Para efectos de partículas
         
         # Cyberpunk Viking color palette - Colores más intensos
@@ -49,7 +58,10 @@ class BaseScreen(ABC):
         for _ in range(segments):
             direction = (target - current).normalize()
             current += direction * (distance / segments)
-            offset = pygame.Vector2(random.randint(-10, 10), random.randint(-10, 10))
+            offset = pygame.Vector2(
+                random.randint(-self.lightning_offset, self.lightning_offset),
+                random.randint(-self.lightning_offset, self.lightning_offset)
+            )
             points.append((current + offset))
         
         points.append(end_pos)
@@ -62,15 +74,14 @@ class BaseScreen(ABC):
             start = corners[i]
             end = corners[(i + 1) % len(corners)]
             lightning_points = self._create_lightning(start, end)
-            if random.random() < 0.3:  # 30% de probabilidad de dibujar cada rayo
+            if random.random() < self.lightning_probability:
                 pygame.draw.lines(self.screen, color, False, lightning_points, 2)
 
     def _draw_energy_field(self, rect, color, time):
         """Dibuja un campo de energía pulsante"""
         num_circles = 2  # Reducido a 2 círculos para un efecto más limpio
-        max_offset = 8
         for i in range(num_circles):
-            offset = math.sin(time * 2 + i) * max_offset
+            offset = math.sin(time * self.energy_field_speed + i) * self.energy_field_amplitude
             expanded_rect = rect.inflate(offset * 2, offset * 2)
             pygame.draw.rect(self.screen, color, expanded_rect, 2)
 
@@ -120,12 +131,13 @@ class BaseScreen(ABC):
 
     def _add_victory_particles(self, rect):
         """Añade partículas de victoria"""
-        for _ in range(3):  # Reducido a 3 partículas por frame para un efecto más limpio
+        for _ in range(self.max_particles):
             particle = {
                 'pos': [rect.centerx + random.randint(-50, 50),
                        rect.centery + random.randint(-50, 50)],
-                'vel': [random.uniform(-2, 2), random.uniform(-2, 2)],
-                'life': random.randint(20, 40),
+                'vel': [random.uniform(-self.particle_speed, self.particle_speed),
+                       random.uniform(-self.particle_speed, self.particle_speed)],
+                'life': random.randint(self.particle_life//2, self.particle_life),
                 'color': random.choice([self.NORDIC_GOLD, self.NEON_BLUE, self.THUNDER_PURPLE])
             }
             self.particles.append(particle)
@@ -133,7 +145,7 @@ class BaseScreen(ABC):
     def _draw_particles(self):
         """Dibuja las partículas"""
         for particle in self.particles:
-            alpha = int(255 * (particle['life'] / 40))
+            alpha = int(255 * (particle['life'] / self.particle_life))
             color = list(particle['color'])
             if len(color) == 3:
                 color.append(alpha)
@@ -143,7 +155,7 @@ class BaseScreen(ABC):
 
     def _draw_model_images(self, model1_img, model2_img, winner=None, final_winner=False):
         if model1_img and model2_img:
-            self.time += 0.1
+            self.time += self.time_speed
             img_y = (self.height - model1_img.get_height()) // 2
             margin = 20
             border_thickness = 4
