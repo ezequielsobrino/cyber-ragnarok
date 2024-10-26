@@ -1,5 +1,6 @@
 from .groq_provider import GroqProvider
 from .anthropic_provider import AnthropicProvider
+from .openai_provider import OpenAIProvider
 from config.settings import LLMProviderType
 
 class ProviderFactory:
@@ -9,7 +10,7 @@ class ProviderFactory:
         
         Args:
             model_name (str): Name of the model to use
-            provider_type (LLMProviderType): Type of the provider (GROQ or ANTHROPIC)
+            provider_type (LLMProviderType): Type of the provider (GROQ, ANTHROPIC, or OPENAI)
             
         Returns:
             Provider instance configured with the specified model
@@ -18,5 +19,7 @@ class ProviderFactory:
             return GroqProvider(model_name)
         elif provider_type == LLMProviderType.ANTHROPIC:
             return AnthropicProvider(model_name)
+        elif provider_type == LLMProviderType.OPENAI:
+            return OpenAIProvider(model_name)
         else:
             raise ValueError(f"Unsupported provider type: {provider_type}")

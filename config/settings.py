@@ -4,6 +4,7 @@ from enum import Enum
 class LLMProviderType(Enum):
     GROQ = "groq"
     ANTHROPIC = "anthropic"
+    OPENAI = "openai"
 
 class ModelConfig:
     # Default models for each provider
@@ -20,14 +21,17 @@ class ModelConfig:
             "claude-3-5-sonnet-20241022",
             "claude-3-5-sonnet-20240620",
             "claude-3-opus-20240229"
+        ],
+        LLMProviderType.OPENAI: [
+            "gpt-4o-mini"
         ]
     }
 
 class MatchConfig:
     def __init__(self):
         # Match participants
-        self.MODEL1_NAME = "llama-3.1-70b-versatile"
-        self.MODEL2_NAME = "llama-3.1-70b-versatile"
+        self.MODEL1_NAME = "gpt-4o-mini"
+        self.MODEL2_NAME = "gpt-4o"
         
         # Match settings
         self.NUM_GAMES = 10
@@ -46,6 +50,8 @@ class MatchConfig:
             return LLMProviderType.GROQ
         elif any(model_name in models for models in ModelConfig.AVAILABLE_MODELS[LLMProviderType.ANTHROPIC]):
             return LLMProviderType.ANTHROPIC
+        if any(model_name in models for models in ModelConfig.AVAILABLE_MODELS[LLMProviderType.OPENAI]):
+            return LLMProviderType.OPENAI
         else:
             raise ValueError(f"Unknown model: {model_name}")
 

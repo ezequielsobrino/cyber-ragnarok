@@ -1,134 +1,126 @@
-# LLM Arena: AI Model Battle Platform
+# AI Model Arena: Cyber Ragnarok
 
-A platform for orchestrating and visualizing competitive matches between Large Language Models (LLMs) across various games and challenges. Currently featuring Tic Tac Toe battles, with planned expansion to chess, checkers, and more strategic games.
+A platform for creating epic video battles between different Large Language Models (LLMs) through strategic games. Currently featuring Tic Tac Toe matches with high-quality video generation of the competitions.
 
-## 🎮 Current Games
+## 🎮 Current Game Support
 
 ### Tic Tac Toe
-- Strategic decision-making showcase
-- Perfect for testing basic game theory understanding
-- Quick matches for rapid model comparison
-- Ideal baseline for evaluation
+- Strategic decision-making with full game analysis
+- Move validation and state management
+- Fork detection and critical move analysis
+- Win condition verification
 
-### Planned Expansions
-- ⚪ Checkers
-- ♟️ Chess
-- 🎲 Connect Four
-- 🎯 Reversi/Othello
+## 🤖 Supported LLM Providers
 
-## 🤖 Supported LLM Models
-
-Currently supported models via Groq API:
-- LLaMA 3.1 70B Versatile
-- LLaMA 3.1 8B Instant
-
-Future support planned for:
-- Claude models
-- GPT models
-- Mistral variants
-- Custom/local models
+The platform supports multiple LLM providers through a modular provider system:
+- Anthropic (Claude models)
+- Groq
+- OpenAI
 
 ## ✨ Key Features
 
 ### Battle System
 - Model vs Model competitions
-- Tournament system with multiple rounds
-- Automatic move validation and game state management
-- Detailed move analysis and strategy logging
+- Multiple rounds per match
+- Automatic move validation
+- Strategy analysis and logging
+- Provider factory for easy model integration
 
-### Analysis & Visualization
-- Video generation of matches
-- Real-time strategy analysis
-- Performance metrics tracking
+### Video Generation
+- Epic intro screens with model matchups
+- Round-by-round visualization
+- Real-time game state rendering
+- Score tracking and winner announcements
+- Professional video editing with transitions
+- Background music integration
 
-### Extensibility
-- Modular game implementation system
-- Standardized LLM interface
-- Pluggable visualization components
-- Customizable tournament formats
+### Asset Management
+- Dynamic image scaling
+- Color overlay effects
+- Model-specific imagery
+- Board and piece visualization
 
 ## 🛠️ Technical Architecture
 
 ```
-cyber-ragnarok/
-├── games/              # Game implementations
-│   ├── base.py         # Base game interface
-│   ├── tic_tac_toe.py  # TicTacToe implementation
-│   └── future/         # Place for new game implementations
+project/
+├── assets/             # Asset management and processing
 ├── brains/             # LLM integration
-│   ├── base.py         # Base LLM interface
 │   └── providers/      # Different LLM providers
-└── main.py             # Video generation
+├── config/             # Configuration and settings
+├── games/              # Game implementations
+├── screens/            # Video screen generators
+├── scripts_utils/      # Utility scripts
+├── video/             # Video creation and editing
+└── main.py            # Main tournament runner
 ```
+
+## 🎥 Screen Types
+
+- Intro Screen: Epic VS screen with model matchups
+- Game Screen: Live game board visualization
+- Round Screen: Score tracking and round information
+- Winner Screen: Final results and statistics
 
 ## 🚀 Getting Started
 
 1. **Installation**
 ```bash
-git clone https://github.com/ezequielsobrino/cyber-ragnarok
-cd cyber-ragnarok
+git clone [repository-url]
+cd [project-directory]
 pip install -r requirements.txt
 ```
 
 2. **Configuration**
-```bash
-# Create .env file with your API keys
-GROQ_API_KEY=your_key_here
-# Add additional API keys as needed
+Create a `.env` file with your API keys:
+```env
+ANTHROPIC_API_KEY=your_anthropic_key
+GROQ_API_KEY=your_groq_key
+OPENAI_API_KEY=your_openai_key
 ```
 
-3. **Run a Tournament**
+3. **Run a Match**
 ```bash
 python main.py
 ```
 
-## 🎯 Adding New Games
+## 🎯 Project Structure Highlights
 
-1. Implement the base game interface:
-```python
-class NewGame(BaseGame):
-    def get_valid_moves(self):
-        # Implementation
-    
-    def make_move(self, move):
-        # Implementation
-    
-    def is_game_over(self):
-        # Implementation
-```
+### Core Components
+- `TicTacToeBrain`: Handles game strategy and move analysis
+- `AssetsManager`: Manages game assets and image processing
+- `VideoMaker`: Creates professional match videos
+- `ProviderFactory`: Manages LLM provider instantiation
 
-2. Create a game-specific brain interface:
-```python
-class NewGameBrain(BaseBrain):
-    def analyze_position(self):
-        # Implementation
-    
-    def get_move(self):
-        # Implementation
-```
+### Screen Components
+- `BaseScreen`: Template for all screen types
+- `GameScreen`: Renders live gameplay
+- `IntroScreen`: Creates epic match intros
+- `RoundScreen`: Shows match progress
+- `WinnerScreen`: Displays final results
 
-3. Add visualization support:
-```python
-class NewGameRenderer(BaseRenderer):
-    def render_state(self):
-        # Implementation
-    
-    def render_move(self):
-        # Implementation
-```
+## 📈 Future Enhancements
+
+- Additional game types (Chess, Checkers, etc.)
+- Enhanced video effects and transitions
+- Tournament bracket system
+- Performance analytics dashboard
+- Additional LLM provider integration
+
+## 💡 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🌟 Acknowledgments
+## 🙏 Acknowledgments
 
-- Groq team for API access
-- Open source game implementation references
-- pygame and OpenCV communities
-- LLM provider teams
-
-## 📬 Support
-
-- GitHub Issues for bugs and features
-- Discussions for general questions
+- Anthropic, Groq, and OpenAI for their APIs
+- Pygame community for game rendering support
+- MoviePy and OpenCV for video processing capabilities
