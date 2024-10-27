@@ -10,15 +10,20 @@ class OpenAIProvider(LLMProvider):
         self.model_id = model_id
 
     def get_completion(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model_id,
-            max_tokens=10,
-            temperature=0.7,
-            messages=[
+        params = {
+            "model": self.model_id,
+            "messages": [
                 {
                     "role": "user",
                     "content": prompt
                 }
             ]
-        )
+        }
+        
+        # Solo agregamos el parámetro de tokens si NO es uno de los modelos preview
+        if self.model_id not in ["o1-mini"]:
+            params["max_tokens"] = 10
+            params["temperature"] = 0.7
+        
+        response = self.client.chat.completions.create(**params)
         return response.choices[0].message.content
