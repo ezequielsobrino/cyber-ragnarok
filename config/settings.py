@@ -1,5 +1,8 @@
-# config/settings.py
 from enum import Enum
+
+class GameType(Enum):
+    TIC_TAC_TOE = "tic_tac_toe"
+    CHECKERS = "checkers" # Testing
 
 class LLMProviderType(Enum):
     GROQ = "groq"
@@ -31,12 +34,15 @@ class ModelConfig:
 
 class MatchConfig:
     def __init__(self):
+        # Game configuration
+        self.GAME_TYPE = GameType.TIC_TAC_TOE  # Default game
+        
         # Match participants
-        self.MODEL1_NAME = "gpt-4o"
-        self.MODEL2_NAME = "o1-mini"
+        self.MODEL1_NAME = "llama-3.1-70b-versatile"
+        self.MODEL2_NAME = "llama-3.1-70b-versatile"
         
         # Match settings
-        self.NUM_GAMES = 10
+        self.NUM_GAMES = 1
         
         # Provider information
         self._set_provider_info()
@@ -57,7 +63,7 @@ class MatchConfig:
         else:
             raise ValueError(f"Unknown model: {model_name}")
 
-# Video rendering settings can be moved to a separate config if needed
+# Video rendering settings
 class VideoConfig:
     WIDTH = 1280
     HEIGHT = 720

@@ -5,6 +5,7 @@ import pygame
 import logging
 from datetime import datetime
 from moviepy.editor import VideoFileClip, AudioFileClip
+from config.settings import GameType
 from screens.intro_screen import IntroScreen
 from screens.game_screen import GameScreen
 from screens.round_screen import RoundScreen
@@ -12,11 +13,12 @@ from screens.winner_screen import WinnerScreen
 from assets.assets_manager import AssetsManager
 
 class VideoMaker:
-    def __init__(self, width=1280, height=720, fps=30):
+    def __init__(self, width=1280, height=720, fps=30, game_type=GameType.TIC_TAC_TOE):
         self.logger = logging.getLogger(__name__)
         self.width = width
         self.height = height
         self.fps = fps
+        self.game_type = game_type
         
         # Initialize pygame
         if not pygame.get_init():
@@ -61,7 +63,11 @@ class VideoMaker:
     def create_intro(self, model1_name, model2_name, duration_seconds=5):
         frames = int(duration_seconds * self.fps)
         for _ in range(frames):
-            surface = self.intro_screen.render(model1_name, model2_name)
+            surface = self.intro_screen.render(
+                model1_name,
+                model2_name,
+                self.game_type
+            )
             self._write_frame(surface)
     
     def render_game(self, game, model1_name, model2_name, frame_duration=1):

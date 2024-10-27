@@ -3,9 +3,6 @@ import random
 import re
 from typing import List, Optional
 
-from dotenv import load_dotenv
-from groq import Groq
-
 from brains.providers.base import LLMProvider
 
 class TicTacToeBrain:
