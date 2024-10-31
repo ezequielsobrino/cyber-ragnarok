@@ -169,9 +169,9 @@ def create_epic_vs_screen(image1_path, image2_path, player1_name, player2_name, 
 # Ejemplo de uso
 if __name__ == "__main__":
     create_epic_vs_screen(
-        "assets/gpt_4o_mini.png",
-        "assets/gpt_4o.png",
-        "GPT-4o mini",
-        "GPT-4o",
-        "gpt_4o_mini-v-gpt_4o.png"
+        "assets/o1_mini.png",
+        "assets/o1_preview.png",
+        "o1-mini",
+        "o1-preview",
+        "o1_mini-v-o1_preview.png"
     )

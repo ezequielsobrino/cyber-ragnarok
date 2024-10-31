@@ -21,7 +21,7 @@ class OpenAIProvider(LLMProvider):
         }
         
         # Solo agregamos el parámetro de tokens si NO es uno de los modelos preview
-        if self.model_id not in ["o1-mini"]:
+        if self.model_id not in ["o1-mini","o1-preview"]:
             params["max_tokens"] = 10
             params["temperature"] = 0.7
         

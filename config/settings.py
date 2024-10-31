@@ -28,7 +28,8 @@ class ModelConfig:
         LLMProviderType.OPENAI: [
             "gpt-4o-mini",
             "gpt-4o",
-            "o1-mini"
+            "o1-mini",
+            "o1-preview"
         ]
     }
 
@@ -38,11 +39,11 @@ class MatchConfig:
         self.GAME_TYPE = GameType.TIC_TAC_TOE  # Default game
         
         # Match participants
-        self.MODEL1_NAME = "llama-3.1-70b-versatile"
-        self.MODEL2_NAME = "llama-3.1-70b-versatile"
+        self.MODEL1_NAME = "o1-mini"
+        self.MODEL2_NAME = "o1-preview"
         
         # Match settings
-        self.NUM_GAMES = 1
+        self.NUM_GAMES = 10
         
         # Provider information
         self._set_provider_info()
