@@ -1,8 +1,7 @@
-import os
 import random
 import re
 from typing import List, Optional
-
+from brains.base import BrainResponse
 from brains.providers.base import LLMProvider
 
 class TicTacToeBrain:
@@ -69,9 +68,8 @@ class TicTacToeBrain:
                 return board[combo[0]]
         return None
 
-    def get_move(self, board: List[str], current_player: str) -> int:
+    def get_move(self, board: List[str], current_player: str) -> BrainResponse:
         analysis = self.analyze_board(board, current_player)
-        
         board_state = [str(i) if cell == ' ' else cell for i, cell in enumerate(board)]
     
         prompt = f"""You are an expert Tic-Tac-Toe player. Analyze the current game state and choose the best move.
@@ -112,16 +110,48 @@ Instructions:
 """
 
         try:
-            response = self.llm_provider.get_completion(prompt)
+            llm_response = self.llm_provider.get_completion(prompt)
             
-            match = re.search(r'\b[0-8]\b', response.content)
+            match = re.search(r'\b[0-8]\b', llm_response.content)
             if match:
                 move = int(match.group())
                 if move in analysis['empty_cells']:
-                    return move
+                    return BrainResponse(
+                        move=move,
+                        raw_content=llm_response.content,
+                        input_tokens=llm_response.input_tokens,
+                        output_tokens=llm_response.output_tokens,
+                        total_tokens=llm_response.total_tokens,
+                        cost=llm_response.cost,
+                        response_time=llm_response.response_time,
+                        is_fallback=False
+                    )
 
-            print(f"LLM provided an invalid move: {response.content}. Falling back to random choice.")
-            return random.choice(analysis['empty_cells'])
+            # Fallback a movimiento aleatorio
+            fallback_move = random.choice(analysis['empty_cells'])
+            print(f"LLM provided an invalid move: {llm_response.content}. Falling back to random choice: {fallback_move}")
+            return BrainResponse(
+                move=fallback_move,
+                raw_content=llm_response.content,
+                input_tokens=llm_response.input_tokens,
+                output_tokens=llm_response.output_tokens,
+                total_tokens=llm_response.total_tokens,
+                cost=llm_response.cost,
+                response_time=llm_response.response_time,
+                is_fallback=True
+            )
+
         except Exception as e:
+            # En caso de error, devolver un movimiento aleatorio con valores por defecto
+            fallback_move = random.choice(analysis['empty_cells'])
             print(f"Error in get_move: {e}")
-            return random.choice(analysis['empty_cells'])
+            return BrainResponse(
+                move=fallback_move,
+                raw_content=str(e),
+                input_tokens=0,
+                output_tokens=0,
+                total_tokens=0,
+                cost=0,
+                response_time=0,
+                is_fallback=True
+            )

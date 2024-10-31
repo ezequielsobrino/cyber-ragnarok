@@ -1,5 +1,6 @@
-from typing import List, Tuple, Optional
+from typing import List
 from brains.providers.base import LLMProvider
+from brains.tic_tac_toe_brain import BrainResponse
 from games.checkers import CheckersGame
 
 class CheckersBrain:
@@ -43,7 +44,7 @@ class CheckersBrain:
         back_pieces = sum(1 for pos in back_row if board[pos].lower() == player)
         return back_pieces / 4  # 4 possible back row pieces
 
-    def get_move(self, board: List[str], current_player: str) -> Tuple[int, int]:
+    def get_move(self, board: List[str], current_player: str) -> BrainResponse:
         """Get the best move for the current player"""
         analysis = self.analyze_board(board, current_player)
         
@@ -90,7 +91,16 @@ Respond with ONLY the chosen move in format "start:target" (e.g., "23:32"). No o
                     available_moves.append(f"{start_pos}:{move}")
             
             if not available_moves:
-                return None
+                return BrainResponse(
+                    move=None,
+                    raw_content="No valid moves available",
+                    input_tokens=0,
+                    output_tokens=0,
+                    total_tokens=0,
+                    cost=0,
+                    response_time=0,
+                    is_fallback=True
+                )
                 
             # Add available moves to prompt
             prompt += f"\nAvailable moves: {', '.join(available_moves)}"
@@ -99,15 +109,33 @@ Respond with ONLY the chosen move in format "start:target" (e.g., "23:32"). No o
             response = self.llm_provider.get_completion(prompt)
             
             # Parse response
-            start, target = map(int, response.strip().split(':'))
+            start, target = map(int, response.content.strip().split(':'))
             
             # Validate move
             if any(move.startswith(f"{start}:{target}") for move in available_moves):
-                return (start, target)
+                return BrainResponse(
+                    move=(start, target),
+                    raw_content=response.content,
+                    input_tokens=response.input_tokens,
+                    output_tokens=response.output_tokens,
+                    total_tokens=response.total_tokens,
+                    cost=response.cost,
+                    response_time=response.response_time,
+                    is_fallback=False
+                )
             
             # Fallback to first valid move if LLM response is invalid
             fallback = available_moves[0].split(':')
-            return (int(fallback[0]), int(fallback[1]))
+            return BrainResponse(
+                move=(int(fallback[0]), int(fallback[1])),
+                raw_content=response.content,
+                input_tokens=response.input_tokens,
+                output_tokens=response.output_tokens,
+                total_tokens=response.total_tokens,
+                cost=response.cost,
+                response_time=response.response_time,
+                is_fallback=True
+            )
             
         except Exception as e:
             print(f"Error in get_move: {e}")
@@ -115,8 +143,26 @@ Respond with ONLY the chosen move in format "start:target" (e.g., "23:32"). No o
             for start_pos in analysis['player_positions']:
                 valid_moves = game.get_valid_moves(start_pos)
                 if valid_moves:
-                    return (start_pos, valid_moves[0][0])
-            return None
+                    return BrainResponse(
+                        move=(start_pos, valid_moves[0][0]),
+                        raw_content=str(e),
+                        input_tokens=0,
+                        output_tokens=0,
+                        total_tokens=0,
+                        cost=0,
+                        response_time=0,
+                        is_fallback=True
+                    )
+            return BrainResponse(
+                move=None,
+                raw_content=str(e),
+                input_tokens=0,
+                output_tokens=0,
+                total_tokens=0,
+                cost=0,
+                response_time=0,
+                is_fallback=True
+            )
 
     def _create_board_visual(self, board: List[str]) -> str:
         """Create a visual representation of the board for the LLM"""
