@@ -10,7 +10,7 @@ class IntroScreen(BaseScreen):
             GameType.CHECKERS: "Cyber Ragnarok - Battle Checkers"
         }
         
-        # Efectos específicos para cada juego
+        # Game-specific effects configuration
         self.game_colors = {
             GameType.TIC_TAC_TOE: {
                 'title': self.NEON_BLUE,
@@ -27,19 +27,22 @@ class IntroScreen(BaseScreen):
         }
 
     def render(self, model1_name: str, model2_name: str, game_type: GameType = GameType.TIC_TAC_TOE):
+        """Renders the intro screen with dramatic effects"""
         self.screen.fill(self.RAVEN_BLACK)
         
-        # Load model images
-        model1_img = self.assets_manager.load_model_image(model1_name)
-        model2_img = self.assets_manager.load_model_image(model2_name)
-        
-        # Draw models with base effects
-        self._draw_model_images(model1_img, model2_img)
+        # Draw models using ModelDisplay component
+        self.model_display.render(
+            self.screen, 
+            model1_name, 
+            model2_name, 
+            None,  # No winner in intro screen
+            False
+        )
         
         # Get game-specific colors
         colors = self.game_colors[game_type]
         
-        # Create a more epic title with effects
+        # Create epic title with effects
         title = self.font_big.render(self.game_titles[game_type], True, colors['title'])
         title_rect = title.get_rect(center=(self.width//2, self.height//8))
         
@@ -48,13 +51,12 @@ class IntroScreen(BaseScreen):
         
         # Add extra effects for checkers
         if game_type == GameType.CHECKERS:
-            # Add corona effect for el título
             crown_rect = title_rect.inflate(60, 30)
             self._draw_crown_effect(crown_rect)
         
         self.screen.blit(title, title_rect)
         
-        # Make VS text more dramatic
+        # Draw VS text with dramatic effects
         vs_text = self.font_big.render("VS", True, colors['vs'])
         vs_rect = vs_text.get_rect(center=(self.width//2, self.height * 0.75))
         
@@ -65,8 +67,7 @@ class IntroScreen(BaseScreen):
         return self.screen
     
     def _draw_crown_effect(self, rect):
-        """Draw a crown-like effect for Checkers title"""
-        # Points for a simple crown shape
+        """Draws a crown-like effect for Checkers title"""
         points = [
             (rect.left + rect.width * 0.2, rect.bottom),
             (rect.left + rect.width * 0.35, rect.top),
@@ -75,7 +76,7 @@ class IntroScreen(BaseScreen):
             (rect.left + rect.width * 0.8, rect.bottom)
         ]
         
-        # Draw the crown outline with energy effect
+        # Draw crown outline with energy effect
         pygame.draw.lines(
             self.screen,
             self.NORDIC_GOLD,
@@ -84,7 +85,7 @@ class IntroScreen(BaseScreen):
             3
         )
         
-        # Add energy particles around the crown points
+        # Add energy particles around crown points
         for point in points:
             self._draw_energy_field(
                 pygame.Rect(point[0]-10, point[1]-10, 20, 20),

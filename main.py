@@ -197,6 +197,8 @@ class AIMatch:
             self.ties,
             self.config.MODEL1_NAME,
             self.config.MODEL2_NAME,
+            self.model1_metrics,
+            self.model2_metrics,
             duration_seconds=VideoConfig.ROUND_INTRO_DURATION
         )
         
@@ -312,6 +314,8 @@ class AIMatch:
                 self.ties,
                 self.config.MODEL1_NAME,
                 self.config.MODEL2_NAME,
+                self.model1_metrics,
+                self.model2_metrics,
                 duration_seconds=VideoConfig.WINNER_ANNOUNCEMENT_DURATION
             )
             self.video_maker.close()

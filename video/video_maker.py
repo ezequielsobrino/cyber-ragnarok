@@ -82,7 +82,9 @@ class VideoMaker:
             )
             self._write_frame(surface)
     
-    def create_round_intro(self, round_num, model1_score, model2_score, ties, model1_name, model2_name, duration_seconds=3):
+    def create_round_intro(self, round_num, model1_score, model2_score, ties, 
+                         model1_name, model2_name, model1_metrics=None, 
+                         model2_metrics=None, duration_seconds=3):
         frames = int(duration_seconds * self.fps)
         for _ in range(frames):
             surface = self.round_screen.render(
@@ -91,11 +93,15 @@ class VideoMaker:
                 model2_score,
                 ties,
                 model1_name,
-                model2_name
+                model2_name,
+                model1_metrics,  # Añadido
+                model2_metrics   # Añadido
             )
             self._write_frame(surface)
     
-    def create_winner_announcement(self, winner_name, score1, score2, ties, model1_name, model2_name, duration_seconds=5):
+    def create_winner_announcement(self, winner_name, score1, score2, ties, 
+                                 model1_name, model2_name, model1_metrics=None, 
+                                 model2_metrics=None, duration_seconds=5):
         frames = int(duration_seconds * self.fps)
         for _ in range(frames):
             surface = self.winner_screen.render(
@@ -104,7 +110,9 @@ class VideoMaker:
                 score2,
                 ties,
                 model1_name,
-                model2_name
+                model2_name,
+                model1_metrics,  # Añadido
+                model2_metrics   # Añadido
             )
             self._write_frame(surface)
     
