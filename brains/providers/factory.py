@@ -1,10 +1,11 @@
+from .base import LLMProvider
 from .groq_provider import GroqProvider
 from .anthropic_provider import AnthropicProvider
 from .openai_provider import OpenAIProvider
 from config.settings import LLMProviderType
 
 class ProviderFactory:
-    def create_provider(self, model_name: str, provider_type: LLMProviderType):
+    def create_provider(self, model_name: str, provider_type: LLMProviderType) -> LLMProvider:
         """
         Create a provider instance based on the provider type and model name.
         

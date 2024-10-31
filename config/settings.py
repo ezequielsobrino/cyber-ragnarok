@@ -1,18 +1,43 @@
 from enum import Enum
+from dataclasses import dataclass
+from typing import Dict, List
 
 class GameType(Enum):
     TIC_TAC_TOE = "tic_tac_toe"
-    CHECKERS = "checkers" # Testing
+    CHECKERS = "checkers"
 
 class LLMProviderType(Enum):
     GROQ = "groq"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
 
+@dataclass
+class ModelPricing:
+    input_cost: float  # Cost per million tokens
+    output_cost: float  # Cost per million tokens
+
 class ModelConfig:
     # Default models for each provider
     DEFAULT_GROQ_MODEL = "llama-3.1-70b-versatile"
     DEFAULT_ANTHROPIC_MODEL = "claude-3-haiku-20240307"
+    
+    # Model pricing configuration (costs per million tokens)
+    MODEL_PRICING: Dict[str, ModelPricing] = {
+        # Groq models
+        "llama-3.1-70b-versatile": ModelPricing(0.90, 0.90),
+        
+        # Anthropic models
+        "claude-3-haiku-20240307": ModelPricing(0.50, 0.50),
+        "claude-3-5-sonnet-20241022": ModelPricing(2.00, 2.00),
+        "claude-3-5-sonnet-20240620": ModelPricing(2.00, 2.00),
+        "claude-3-opus-20240229": ModelPricing(3.00, 3.00),
+        
+        # OpenAI models
+        "gpt-4o-mini": ModelPricing(0.30, 1.20),
+        "gpt-4o": ModelPricing(3.75, 15.00),
+        "o1-mini": ModelPricing(0.50, 0.50),
+        "o1-preview": ModelPricing(0.50, 0.50)
+    }
     
     # Available models
     AVAILABLE_MODELS = {
@@ -32,18 +57,26 @@ class ModelConfig:
             "o1-preview"
         ]
     }
+    
+    @classmethod
+    def get_model_pricing(cls, model_name: str) -> ModelPricing:
+        """Get the pricing configuration for a specific model"""
+        if model_name not in cls.MODEL_PRICING:
+            raise ValueError(f"Unknown model: {model_name}")
+        return cls.MODEL_PRICING[model_name]
 
+# Rest of your existing classes...
 class MatchConfig:
     def __init__(self):
         # Game configuration
-        self.GAME_TYPE = GameType.TIC_TAC_TOE  # Default game
+        self.GAME_TYPE = GameType.TIC_TAC_TOE
         
         # Match participants
-        self.MODEL1_NAME = "o1-mini"
-        self.MODEL2_NAME = "o1-preview"
+        self.MODEL1_NAME = "llama-3.1-70b-versatile"
+        self.MODEL2_NAME = "llama-3.1-70b-versatile"
         
         # Match settings
-        self.NUM_GAMES = 10
+        self.NUM_GAMES = 1
         
         # Provider information
         self._set_provider_info()
@@ -55,16 +88,11 @@ class MatchConfig:
     
     def _get_provider_type(self, model_name: str) -> LLMProviderType:
         """Determine the provider type based on the model name"""
-        if any(model_name in models for models in ModelConfig.AVAILABLE_MODELS[LLMProviderType.GROQ]):
-            return LLMProviderType.GROQ
-        elif any(model_name in models for models in ModelConfig.AVAILABLE_MODELS[LLMProviderType.ANTHROPIC]):
-            return LLMProviderType.ANTHROPIC
-        if any(model_name in models for models in ModelConfig.AVAILABLE_MODELS[LLMProviderType.OPENAI]):
-            return LLMProviderType.OPENAI
-        else:
-            raise ValueError(f"Unknown model: {model_name}")
+        for provider, models in ModelConfig.AVAILABLE_MODELS.items():
+            if model_name in models:
+                return provider
+        raise ValueError(f"Unknown model: {model_name}")
 
-# Video rendering settings
 class VideoConfig:
     WIDTH = 1280
     HEIGHT = 720

@@ -1,24 +1,23 @@
-import os
-from dotenv import load_dotenv
 from anthropic import Anthropic
+from dotenv import load_dotenv
+import os
 from .base import LLMProvider
 
 class AnthropicProvider(LLMProvider):
-    def __init__(self, model_id="claude-3-haiku-20240307"):
+    def __init__(self, model_id: str):
+        super().__init__(model_id)
         load_dotenv()
         self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        self.model_id = model_id
 
-    def get_completion(self, prompt: str) -> str:
-        response = self.client.messages.create(
+    def _make_api_call(self, prompt: str) -> tuple[str, dict]:
+        message = self.client.messages.create(
             model=self.model_id,
-            max_tokens=10,
-            temperature=0.7,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
         )
-        return response.content[0].text
+        
+        return message.content[0].text, {
+            'input_tokens': message.usage.input_tokens,
+            'output_tokens': message.usage.output_tokens,
+            'total_tokens': message.usage.input_tokens + message.usage.output_tokens
+        }

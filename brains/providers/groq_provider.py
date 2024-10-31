@@ -1,24 +1,22 @@
-import os
-from dotenv import load_dotenv
 from groq import Groq
+from dotenv import load_dotenv
+import os
 from .base import LLMProvider
 
 class GroqProvider(LLMProvider):
-    def __init__(self, model_id="llama-3.1-70b-versatile"):
+    def __init__(self, model_id: str):
+        super().__init__(model_id)
         load_dotenv()
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.model_id = model_id
 
-    def get_completion(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
+    def _make_api_call(self, prompt: str) -> tuple[str, dict]:
+        completion = self.client.chat.completions.create(
             model=self.model_id,
-            max_tokens=10,
-            temperature=0.7,
-            messages=[
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
-            ]
+            messages=[{"role": "user", "content": prompt}]
         )
-        return response.choices[0].message.content.strip()
+        
+        return completion.choices[0].message.content, {
+            'input_tokens': completion.usage.prompt_tokens,
+            'output_tokens': completion.usage.completion_tokens,
+            'total_tokens': completion.usage.total_tokens
+        }

@@ -112,16 +112,15 @@ Instructions:
 """
 
         try:
-            content = self.llm_provider.get_completion(prompt)
+            response = self.llm_provider.get_completion(prompt)
             
-            # Intenta encontrar un número en la respuesta
-            match = re.search(r'\b[0-8]\b', content)
+            match = re.search(r'\b[0-8]\b', response.content)
             if match:
                 move = int(match.group())
                 if move in analysis['empty_cells']:
                     return move
 
-            print(f"LLM provided an invalid move: {content}. Falling back to random choice.")
+            print(f"LLM provided an invalid move: {response.content}. Falling back to random choice.")
             return random.choice(analysis['empty_cells'])
         except Exception as e:
             print(f"Error in get_move: {e}")
