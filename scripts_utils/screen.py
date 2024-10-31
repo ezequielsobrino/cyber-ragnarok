@@ -173,5 +173,5 @@ if __name__ == "__main__":
         "assets/o1_preview.png",
         "o1-mini",
         "o1-preview",
-        "o1_mini-v-o1_preview.png"
+        "assets/vs/o1_mini-v-o1_preview.png"
     )
