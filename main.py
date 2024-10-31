@@ -128,8 +128,7 @@ class AIMatch:
             
             self.logger.info(
                 f"LLM Metrics - Tokens: {response.input_tokens}/{response.output_tokens} "
-                f"(total: {response.total_tokens}), Cost: ${response.cost:.6f}, "
-                f"Time: {response.response_time:.3f}s"
+                f"(total: {response.total_tokens}), Cost: ${response.cost:.2e}, "
             )
             
             if response.move is None:
@@ -166,7 +165,7 @@ class AIMatch:
             
             self.logger.info(
                 f"LLM Metrics - Tokens: {response.input_tokens}/{response.output_tokens} "
-                f"(total: {response.total_tokens}), Cost: ${response.cost:.6f}, "
+                f"(total: {response.total_tokens}), Cost: ${response.cost:.2e}, "
                 f"Time: {response.response_time:.3f}s"
             )
             
@@ -207,17 +206,21 @@ class AIMatch:
         while not game.game_over:
             self._make_move(game)
             self.video_maker.render_game(
-                game,
-                self.config.MODEL1_NAME,
-                self.config.MODEL2_NAME,
+                game=game,
+                model1_name=self.config.MODEL1_NAME,
+                model2_name=self.config.MODEL2_NAME,
+                model1_metrics=self.model1_metrics,
+                model2_metrics=self.model2_metrics,
                 frame_duration=VideoConfig.MOVE_DURATION
             )
             
         self._update_scores(game)
         self.video_maker.render_game(
-            game,
-            self.config.MODEL1_NAME,
-            self.config.MODEL2_NAME,
+            game=game,
+            model1_name=self.config.MODEL1_NAME,
+            model2_name=self.config.MODEL2_NAME,
+            model1_metrics=self.model1_metrics,
+            model2_metrics=self.model2_metrics,
             frame_duration=VideoConfig.END_GAME_DURATION
         )
 
@@ -235,11 +238,11 @@ class AIMatch:
             f"(Valid: {metrics.valid_moves}, Invalid: {metrics.invalid_moves}, Fallback: {metrics.fallback_moves})\n"
             f"  Tokens: {metrics.total_tokens} "
             f"(Input: {metrics.input_tokens}, Output: {metrics.output_tokens})\n"
-            f"  Cost: ${metrics.total_cost:.6f}\n"
+            f"  Cost: ${metrics.total_cost:.2e}\n"
             f"  Averages per move:\n"
             f"    - Response Time: {avg_time:.3f}s\n"
             f"    - Tokens: {avg_tokens:.1f}\n"
-            f"    - Cost: ${avg_cost:.6f}\n"
+            f"    - Cost: ${avg_cost:.2e}\n"
             f"  Move Accuracy: {(metrics.valid_moves/metrics.total_moves*100):.1f}%"
         )
 

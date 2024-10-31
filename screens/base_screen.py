@@ -41,11 +41,16 @@ class BaseScreen(ABC):
         
         # Fonts
         self.original_font_size = int(height * 0.06)
-        self.min_font_size = int(height * 0.03)
+        self.min_font_size = int(height * 0.025)  # Smaller size for metrics
         self.font_large = int(height * 0.1)
         self.font = pygame.font.Font(None, self.original_font_size)
+        self.font_small = pygame.font.Font(None, self.min_font_size)  # New font for metrics
         self.font_big = pygame.font.Font(None, self.font_large)
         self.TEXT_COLOR = (255, 255, 255)
+        
+        # Metrics display settings
+        self.metrics_spacing = 5
+        self.metrics_padding = 10
 
     def _create_lightning(self, start_pos, end_pos, branches=3):
         """Crea un efecto de rayo entre dos puntos"""
@@ -153,7 +158,61 @@ class BaseScreen(ABC):
                              [int(particle['pos'][0]), int(particle['pos'][1])],
                              2)
 
-    def _draw_model_images(self, model1_img, model2_img, winner=None, final_winner=False):
+    def _format_metrics(self, metrics):
+        """Format metrics for display"""
+        if metrics.total_moves == 0:
+            return []
+            
+        avg_time = metrics.total_time / metrics.total_moves
+        avg_tokens = metrics.total_tokens / metrics.total_moves
+        avg_cost = metrics.total_cost / metrics.total_moves
+        accuracy = (metrics.valid_moves/metrics.total_moves*100)
+        
+        return [
+            f"Moves: {metrics.valid_moves}/{metrics.total_moves}",
+            f"Accuracy: {accuracy:.1f}%",
+            f"Avg Time: {avg_time:.2f}s",
+            f"Avg Tokens: {avg_tokens:.1f}",
+            f"Cost: ${metrics.total_cost:.2e}",
+            f"$/Move: ${avg_cost:.2e}"  
+        ]
+
+    def _draw_metrics(self, rect, metrics, color):
+        """Draw metrics below the given rectangle"""
+        if not metrics:
+            return
+            
+        formatted_metrics = self._format_metrics(metrics)
+        if not formatted_metrics:
+            return
+            
+        # Calculate metrics box dimensions
+        line_height = self.font_small.get_height()
+        total_height = (line_height + self.metrics_spacing) * len(formatted_metrics)
+        max_width = max(self.font_small.size(line)[0] for line in formatted_metrics)
+        
+        # Create metrics box below the character
+        metrics_rect = pygame.Rect(
+            rect.x,
+            rect.bottom + self.metrics_spacing,
+            max_width + (self.metrics_padding * 2),
+            total_height + (self.metrics_padding * 2)
+        )
+        
+        # Draw background and frame
+        pygame.draw.rect(self.screen, self.RAVEN_BLACK, metrics_rect)
+        self._draw_epic_frame(metrics_rect, color)
+        
+        # Draw metrics text
+        for i, line in enumerate(formatted_metrics):
+            text = self.font_small.render(line, True, color)
+            text_rect = text.get_rect(
+                left=metrics_rect.left + self.metrics_padding,
+                top=metrics_rect.top + self.metrics_padding + (i * (line_height + self.metrics_spacing))
+            )
+            self.screen.blit(text, text_rect)
+
+    def _draw_model_images(self, model1_img, model2_img, winner=None, final_winner=False, model1_metrics=None, model2_metrics=None):
         if model1_img and model2_img:
             self.time += self.time_speed
             img_y = (self.height - model1_img.get_height()) // 2
@@ -211,6 +270,12 @@ class BaseScreen(ABC):
             # Dibujar imágenes de modelos sobre los efectos
             self.screen.blit(model1_img, (margin, img_y))
             self.screen.blit(model2_img, (self.width - model2_img.get_width() - margin, img_y))
+            
+            # Draw metrics if available
+            if model1_metrics:
+                self._draw_metrics(border_rect_1, model1_metrics, self.NEON_BLUE)
+            if model2_metrics:
+                self._draw_metrics(border_rect_2, model2_metrics, self.NEON_RED)
 
     @abstractmethod
     def render(self, **kwargs):

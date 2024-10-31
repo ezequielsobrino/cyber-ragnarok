@@ -18,8 +18,8 @@ class LLMProvider(ABC):
     def __init__(self, model_id: str):
         # Configure pricing based on model
         pricing = ModelConfig.get_model_pricing(model_id)
-        self.cost_per_1k_input_tokens = pricing.input_cost / 1000
-        self.cost_per_1k_output_tokens = pricing.output_cost / 1000
+        self.cost_per_token_input = pricing.input_cost / 1_000_000
+        self.cost_per_token_output = pricing.output_cost / 1_000_000
         self.model_id = model_id
 
     @contextmanager
@@ -32,10 +32,10 @@ class LLMProvider(ABC):
             self.last_response_time = round(time() - start_time, 3)
 
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        input_cost = (input_tokens / 1000) * self.cost_per_1k_input_tokens
-        output_cost = (output_tokens / 1000) * self.cost_per_1k_output_tokens
-        return round(input_cost + output_cost, 6)
-
+        input_cost = input_tokens * self.cost_per_token_input
+        output_cost = output_tokens * self.cost_per_token_output
+        return input_cost + output_cost
+    
     def get_completion(self, prompt: str) -> LLMResponse:
         """
         Template method that handles timing and response creation.

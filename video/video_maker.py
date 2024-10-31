@@ -70,10 +70,16 @@ class VideoMaker:
             )
             self._write_frame(surface)
     
-    def render_game(self, game, model1_name, model2_name, frame_duration=1):
+    def render_game(self, game, model1_name, model2_name, model1_metrics=None, model2_metrics=None, frame_duration=1):
         frames = int(frame_duration * self.fps)
         for _ in range(frames):
-            surface = self.game_screen.render(game, model1_name, model2_name)
+            surface = self.game_screen.render(
+                game=game,
+                model1_name=model1_name,
+                model2_name=model2_name,
+                model1_metrics=model1_metrics,
+                model2_metrics=model2_metrics
+            )
             self._write_frame(surface)
     
     def create_round_intro(self, round_num, model1_score, model2_score, ties, model1_name, model2_name, duration_seconds=3):

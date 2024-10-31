@@ -24,7 +24,8 @@ class ModelConfig:
     # Model pricing configuration (costs per million tokens)
     MODEL_PRICING: Dict[str, ModelPricing] = {
         # Groq models
-        "llama-3.1-70b-versatile": ModelPricing(0.90, 0.90),
+        "llama-3.1-70b-versatile": ModelPricing(0.00059, 0.00079),
+        "llama-3.1-8b-instant": ModelPricing(0.00005, 0.00008),
         
         # Anthropic models
         "claude-3-haiku-20240307": ModelPricing(0.50, 0.50),
@@ -42,7 +43,8 @@ class ModelConfig:
     # Available models
     AVAILABLE_MODELS = {
         LLMProviderType.GROQ: [
-            "llama-3.1-70b-versatile"
+            "llama-3.1-70b-versatile",
+            "llama-3.1-8b-instant",
         ],
         LLMProviderType.ANTHROPIC: [
             "claude-3-haiku-20240307",
@@ -65,7 +67,6 @@ class ModelConfig:
             raise ValueError(f"Unknown model: {model_name}")
         return cls.MODEL_PRICING[model_name]
 
-# Rest of your existing classes...
 class MatchConfig:
     def __init__(self):
         # Game configuration
@@ -73,10 +74,10 @@ class MatchConfig:
         
         # Match participants
         self.MODEL1_NAME = "llama-3.1-70b-versatile"
-        self.MODEL2_NAME = "llama-3.1-70b-versatile"
+        self.MODEL2_NAME = "llama-3.1-8b-instant"
         
         # Match settings
-        self.NUM_GAMES = 1
+        self.NUM_GAMES = 3
         
         # Provider information
         self._set_provider_info()
