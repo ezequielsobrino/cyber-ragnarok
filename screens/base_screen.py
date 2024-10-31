@@ -178,39 +178,81 @@ class BaseScreen(ABC):
         ]
 
     def _draw_metrics(self, rect, metrics, color):
-        """Draw metrics below the given rectangle"""
+        """Draw metrics with a clean cyberpunk style"""
         if not metrics:
             return
-            
+                
         formatted_metrics = self._format_metrics(metrics)
         if not formatted_metrics:
             return
-            
+                
         # Calculate metrics box dimensions
         line_height = self.font_small.get_height()
         total_height = (line_height + self.metrics_spacing) * len(formatted_metrics)
         max_width = max(self.font_small.size(line)[0] for line in formatted_metrics)
         
-        # Create metrics box below the character
+        # Create metrics box with fixed proportions
+        box_width = max(max_width + (self.metrics_padding * 3), rect.width * 0.8)
+        
+        # Position the metrics box under the character
         metrics_rect = pygame.Rect(
-            rect.x,
-            rect.bottom + self.metrics_spacing,
-            max_width + (self.metrics_padding * 2),
+            rect.centerx - (box_width / 2),
+            rect.bottom + self.metrics_spacing * 2,
+            box_width,
             total_height + (self.metrics_padding * 2)
         )
         
-        # Draw background and frame
+        # Draw solid background
         pygame.draw.rect(self.screen, self.RAVEN_BLACK, metrics_rect)
-        self._draw_epic_frame(metrics_rect, color)
         
-        # Draw metrics text
+        # Draw simple frame
+        pygame.draw.rect(self.screen, color, metrics_rect, 2)
+        
+        # Draw corner accents
+        corner_size = 8
+        for corner in [(metrics_rect.topleft, (1, 1)), (metrics_rect.topright, (-1, 1)),
+                    (metrics_rect.bottomleft, (1, -1)), (metrics_rect.bottomright, (-1, -1))]:
+            pos, direction = corner
+            pygame.draw.line(self.screen, color,
+                            (pos[0], pos[1] + (corner_size * direction[1])),
+                            pos, 2)
+            pygame.draw.line(self.screen, color,
+                            (pos[0] + (corner_size * direction[0]), pos[1]),
+                            pos, 2)
+        
+        # Draw metrics text with clean styling
         for i, line in enumerate(formatted_metrics):
-            text = self.font_small.render(line, True, color)
-            text_rect = text.get_rect(
-                left=metrics_rect.left + self.metrics_padding,
-                top=metrics_rect.top + self.metrics_padding + (i * (line_height + self.metrics_spacing))
-            )
-            self.screen.blit(text, text_rect)
+            # Split the line into label and value
+            if ': ' in line:
+                label, value = line.split(': ')
+                
+                # Render label in light gray
+                label_surface = self.font_small.render(f"{label}: ", True, (180, 180, 180))
+                label_rect = label_surface.get_rect(
+                    left=metrics_rect.left + self.metrics_padding,
+                    top=metrics_rect.top + self.metrics_padding + 
+                        (i * (line_height + self.metrics_spacing))
+                )
+                
+                # Render value in main color, no effects
+                value_surface = self.font_small.render(value, True, color)
+                value_rect = value_surface.get_rect(
+                    left=label_rect.right,
+                    top=label_rect.top
+                )
+                
+                # Blit text
+                self.screen.blit(label_surface, label_rect)
+                self.screen.blit(value_surface, value_rect)
+            else:
+                # For lines without splits
+                text = self.font_small.render(line, True, color)
+                text_rect = text.get_rect(
+                    left=metrics_rect.left + self.metrics_padding,
+                    top=metrics_rect.top + self.metrics_padding + 
+                        (i * (line_height + self.metrics_spacing))
+                )
+                self.screen.blit(text, text_rect)
 
     def _draw_model_images(self, model1_img, model2_img, winner=None, final_winner=False, model1_metrics=None, model2_metrics=None):
         if model1_img and model2_img:

@@ -77,7 +77,7 @@ class MatchConfig:
         self.MODEL2_NAME = "llama-3.1-8b-instant"
         
         # Match settings
-        self.NUM_GAMES = 3
+        self.NUM_GAMES = 1
         
         # Provider information
         self._set_provider_info()
