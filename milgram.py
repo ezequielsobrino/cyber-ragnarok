@@ -192,7 +192,7 @@ class MilgramSimulation:
         self.state_delay = 1000  # 1 second between state changes
         
         # LLM setup
-        self.provider = GroqProvider(model_id="llama-3.1-70b-versatile")
+        self.provider = GroqProvider(model_id="llama-3.1-8b-instant")
         self.total_cost = 0
         self.total_tokens = 0
         
