@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import pygame
-
+import json
 from pathlib import Path
 
 # Get the project root directory
@@ -13,7 +13,7 @@ sys.path.insert(0, str(project_root))
 from brains.providers.base import LLMResponse
 from brains.providers.groq_provider import GroqProvider
 from simulations.milgram.game_state import GameState, TeacherDecision, AuthorityLevel
-from simulations.milgram.renderer import GameRenderer
+from simulations.milgram.renderer import GameRenderer, DialogueMessage
 
 class CyberVikingSimulation:
     def __init__(self):
@@ -30,6 +30,31 @@ class CyberVikingSimulation:
         self.current_time = 0
         self.last_decision_time = 0
         self.current_decision = None
+        self.waiting_for_dialogue = False
+
+    def update_dialogue_messages(self, learner_response: str, researcher_command: str, teacher_reasoning: str):
+        # Clear previous messages
+        self.renderer.dialogue_box.current_messages = []
+        
+        # Add new messages with proper colors for each character
+        self.renderer.dialogue_box.set_messages([
+            DialogueMessage(
+                speaker_name="JARL-0xF4",
+                content=researcher_command,
+                color=self.renderer.CHAR1_COLOR
+            ),
+            DialogueMessage(
+                speaker_name="THRALL-2.0",
+                content=learner_response,
+                color=self.renderer.CHAR2_COLOR
+            ),
+            DialogueMessage(
+                speaker_name="WARRIOR-V1",
+                content=teacher_reasoning,
+                color=self.renderer.CHAR3_COLOR
+            )
+        ])
+        self.waiting_for_dialogue = True
 
     def get_teacher_decision(self) -> TeacherDecision:
         learner_response = self.game_state.get_learner_response()
@@ -59,7 +84,6 @@ Respond ONLY in JSON format with this exact format:
             self.game_state.total_cost += response.cost
             self.game_state.total_tokens += response.total_tokens
             
-            import json
             decision_data = json.loads(response.content)
             
             decision = TeacherDecision(
@@ -69,10 +93,12 @@ Respond ONLY in JSON format with this exact format:
                 stress_level=8
             )
             
-            # Update the warrior's dialogue
-            self.renderer.warrior.message = decision.reasoning
-            self.renderer.thrall.message = learner_response
-            self.renderer.jarl.message = researcher_command
+            # Update the dialogue messages
+            self.update_dialogue_messages(
+                learner_response=learner_response,
+                researcher_command=researcher_command,
+                teacher_reasoning=decision.reasoning
+            )
             
             return decision
             
@@ -86,52 +112,51 @@ Respond ONLY in JSON format with this exact format:
             )
             
             # Update dialogue with error message
-            self.renderer.warrior.message = error_decision.reasoning
-            self.renderer.thrall.message = learner_response
-            self.renderer.jarl.message = researcher_command
+            self.update_dialogue_messages(
+                learner_response=learner_response,
+                researcher_command=researcher_command,
+                teacher_reasoning=error_decision.reasoning
+            )
             
             return error_decision
 
     def run(self):
-        while self.game_state.experiment_active:
+        running = True
+        while running:
             self.current_time = pygame.time.get_ticks()
             
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                # Handle dialogue advancement with spacebar
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    self.renderer.dialogue_box.advance_dialogue()
+                    # Si no hay más mensajes después de avanzar, el diálogo ha terminado
+                    if not self.renderer.dialogue_box.current_messages:
+                        self.waiting_for_dialogue = False
+                        self.last_decision_time = self.current_time  # Resetear el tiempo para la siguiente decisión
             
-            # Make new decision every DECISION_DELAY milliseconds
-            if self.current_time - self.last_decision_time >= self.DECISION_DELAY:
-                self.current_decision = self.get_teacher_decision()
-                self.game_state.decisions.append(self.current_decision)
-                
-                # Update authority level based on decision
-                self.game_state.update_authority_level(self.current_decision)
-                
-                # Check trial end conditions
-                if (not self.current_decision.will_continue and 
-                    self.game_state.authority_level == AuthorityLevel.ABSOLUTE) or \
-                    self.game_state.current_voltage >= self.game_state.max_voltage:
-                    self.game_state.experiment_active = False
-                else:
-                    if self.current_decision.will_continue:
-                        self.game_state.current_voltage += self.game_state.voltage_step
-                
-                self.last_decision_time = self.current_time
+            if self.game_state.experiment_active and not self.waiting_for_dialogue:
+                # Make new decision every DECISION_DELAY milliseconds
+                if self.current_time - self.last_decision_time >= self.DECISION_DELAY:
+                    self.current_decision = self.get_teacher_decision()
+                    self.game_state.decisions.append(self.current_decision)
+                    
+                    # Update authority level based on decision
+                    self.game_state.update_authority_level(self.current_decision)
+                    
+                    # Check trial end conditions
+                    if (not self.current_decision.will_continue and 
+                        self.game_state.authority_level == AuthorityLevel.ABSOLUTE) or \
+                        self.game_state.current_voltage >= self.game_state.max_voltage:
+                        self.game_state.experiment_active = False
+                    else:
+                        if self.current_decision.will_continue:
+                            self.game_state.current_voltage += self.game_state.voltage_step
             
             # Draw the current frame
-            self.renderer.draw_frame(self.game_state)
-            self.clock.tick(self.FPS)
-        
-        # Keep window open after trial ends
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-            
-            self.renderer.draw_frame(self.game_state, experiment_finished=True)
+            self.renderer.draw_frame(self.game_state, not self.game_state.experiment_active)
             self.clock.tick(self.FPS)
 
 if __name__ == "__main__":
