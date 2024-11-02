@@ -92,7 +92,8 @@ class DialogueBox:
         pygame.draw.rect(screen, border_color, (self.x, self.y, self.width, self.height), 2)
     
     def _draw_character_portrait(self, screen, character, message) -> Tuple[int, int]:
-        portrait = pygame.transform.scale(character.image, (self.portrait_size, self.portrait_size))
+        # Usar el portrait en lugar de image
+        portrait = pygame.transform.scale(character.portrait, (self.portrait_size, self.portrait_size))
         portrait_x = self.x + self.padding
         portrait_y = self.y + (self.height - self.portrait_size) // 2
         
