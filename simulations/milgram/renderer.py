@@ -1,234 +1,154 @@
+from typing import Dict, List, Tuple
+
 import pygame
-from dataclasses import dataclass
+from simulations.milgram.assets_manager import AssetsManager
+from simulations.milgram.dialog_manager import DialogManager
+from simulations.milgram.game_state import GameState
+from simulations.milgram.text_manager import TextManager
 
-from simulations.milgram.dialogue_system import DialogueBox, DialogueMessage
 
-class Character:
-    def __init__(self, x: int, y: int, sprite: pygame.Surface, portrait: pygame.Surface, name: str):
-        self.x = x
-        self.y = y
-        # Ensure sprite is exactly 64x64 pixels
-        self.sprite = pygame.transform.scale(sprite, (64, 64))
-        # Portraits should be 128x128 for detailed dialogue view
-        self.portrait = pygame.transform.scale(portrait, (128, 128))
-        self.name = name
-        self.message = ""
-
-class Character:
-    def __init__(self, x: int, y: int, sprite_path: str, portrait_path: str, name: str, target_height: int):
-        self.x = x
-        self.y = y
-        self.name = name
+class Renderer:
+    def __init__(self, screen_size: Tuple[int, int]):
+        self.screen = pygame.display.set_mode(screen_size)
+        self.screen_width, self.screen_height = screen_size  # 1792 x 1024
         
-        # Cargar sprite original
-        original_sprite = pygame.image.load(sprite_path)
-        original_height = original_sprite.get_height()
-        original_width = original_sprite.get_width()
+        # Initialize managers
+        self.assets = AssetsManager(screen_size)
+        self.text_manager = TextManager()
+        self.dialog_manager = DialogManager(screen_size)
         
-        # Calcular nueva anchura manteniendo la proporción
-        scale_factor = target_height / original_height
-        new_width = int(original_width * scale_factor)
-        
-        # Escalar sprite
-        self.sprite = pygame.transform.scale(original_sprite, (new_width, target_height))
-        
-        # Escalar retrato para diálogos
-        portrait = pygame.image.load(portrait_path)
-        self.portrait = pygame.transform.scale(portrait, (150, 150))  # Tamaño fijo para retratos
-        
-        # Guardar dimensiones para referencia
-        self.width = new_width
-        self.height = target_height
-
-class GameRenderer:
-    def __init__(self, width: int, height: int):
-        pygame.init()
-        pygame.font.init()
-        
-        self.width = width
-        self.height = height
-        self.screen = pygame.display.set_mode((width, height))
-        pygame.display.set_caption("CyberViking Experiment")
-        
-        # Cargar fondo
-        self.background = pygame.image.load('simulations/milgram/assets/background.png')
-        self.background = pygame.transform.scale(self.background, (width, height))
-        
-        # Cyberpunk neon colors
-        self.CHAR1_COLOR = (0, 255, 255)  # Cyber blue for Jarl
-        self.CHAR2_COLOR = (255, 0, 128)  # Neon pink for Thrall
-        self.CHAR3_COLOR = (0, 255, 128)  # Neon green for Warrior
-        
-        # Calcular dimensiones para personajes
-        CHARACTER_HEIGHT = int(height * 0.3)  # 90% de la altura de la pantalla
-        
-        # Calcular posición Y base para todos los personajes
-        # Los colocamos más abajo, casi al final de la pantalla
-        base_y = height - int(CHARACTER_HEIGHT * 0.95)  # Solo mostrar 95% del sprite
-        
-        # Crear personajes con la nueva altura objetivo
-        self.jarl = Character(
-            x=width - int(width * 0.3),  # 30% desde la derecha
-            y=base_y,
-            sprite_path='simulations/milgram/assets/jarl_sprite.png',
-            portrait_path='simulations/milgram/assets/jarl_portrait.png',
-            name="JARL-0xF4",
-            target_height=CHARACTER_HEIGHT
-        )
-
-        self.warrior = Character(
-            x=int(width * 0.5) - int(CHARACTER_HEIGHT * 0.4),  # Centrado
-            y=base_y,
-            sprite_path='simulations/milgram/assets/warrior_sprite.png',
-            portrait_path='simulations/milgram/assets/warrior_portrait.png',
-            name="WARRIOR-V1",
-            target_height=CHARACTER_HEIGHT
-        )
-        
-        self.thrall = Character(
-            x=int(width * 0.1),  # 10% desde la izquierda
-            y=base_y,
-            sprite_path='simulations/milgram/assets/thrall_sprite.png',
-            portrait_path='simulations/milgram/assets/thrall_portrait.png',
-            name="THRALL-2.0",
-            target_height=CHARACTER_HEIGHT
-        )
-        
-        
-        
-        # Configurar fuente
-        try:
-            self.text_font = pygame.font.Font('simulations/milgram/assets/cyber_font.ttf', 24)
-        except:
-            self.text_font = pygame.font.Font(None, 28)
-        
-        # Configurar diálogo en la parte superior
-        dialogue_height = int(height * 0.2)  # 20% de la altura de la pantalla
-        self.dialogue_box = DialogueBox(
-            width=width,
-            height=height,
-            font=self.text_font,
-            position=(0, 0)
-        )
-        
-        # Superficie para el diálogo
-        self.dialogue_surface = pygame.Surface((width, dialogue_height))
-        self.dialogue_surface.fill((0, 0, 0))
-        self.dialogue_surface.set_alpha(180)
-        
-        self.characters = {
-            "JARL-0xF4": self.jarl,
-            "THRALL-2.0": self.thrall,
-            "WARRIOR-V1": self.warrior
+        # Colors
+        self.colors = {
+            'terminal': (0, 255, 0),
+            'alert': (255, 0, 0),
+            'black': (0, 0, 0),
+            'gray': (200, 200, 200)
         }
 
-    def draw_frame(self, game_state, experiment_finished: bool = False):
-        # Dibujar fondo
-        self.screen.blit(self.background, (0, 0))
-        self._draw_scanlines()
-        
-        # Dibujar personajes con efecto de brillo
-        for character in [self.warrior, self.thrall, self.jarl]:
-            self._draw_character_glow(character)
-            self.screen.blit(character.sprite, (character.x, character.y))
-        
-        # Dibujar diálogo en la parte superior
-        self.screen.blit(self.dialogue_surface, (0, 0))
-        
-        # Actualizar y dibujar texto del diálogo
-        current_time = pygame.time.get_ticks()
-        self.dialogue_box.update(current_time)
-        self.dialogue_box.draw(self.screen, self.characters)
-        
-        if experiment_finished:
-            self._draw_termination_status()
-        
-        pygame.display.flip()
+    def update_text_animation(self) -> bool:
+        """Delegate text animation update to text manager"""
+        return self.text_manager.update_text_animation()
 
-    def _draw_character_glow(self, character):
-        """Dibujar efecto de brillo bajo los personajes"""
-        glow_width = character.width + 80  # Brillo más ancho
-        glow_height = 100  # Brillo más alto
-        glow_surface = pygame.Surface((glow_width, glow_height), pygame.SRCALPHA)
+    @property
+    def is_animating(self) -> bool:
+        """Delegate animation state check to text manager"""
+        return self.text_manager.is_animating
+
+    def draw_scene(self, scene: Dict, state: GameState) -> List[pygame.Rect]:
+        # Draw background
+        self.screen.blit(self.assets.background, (0, 0))
         
-        # Crear efecto de gradiente más intenso
-        for i in range(glow_height):
-            alpha = int(255 * (1 - i/glow_height) * 0.9)  # Más intenso
-            pygame.draw.ellipse(
-                glow_surface,
-                (*self.CHAR3_COLOR[:3], alpha),
-                (0, i, glow_width, 8)  # Líneas más gruesas
+        # Calculate character positions for 1792x1024 screen
+        # Assuming each character sprite is about 300px wide
+        character_width = 300
+        total_characters = 3
+        total_spacing = self.screen_width - (character_width * total_characters)
+        spacing = total_spacing // (total_characters + 1)
+        
+        # Base vertical position - placing characters near bottom but above UI elements
+        base_y = self.screen_height - 450  # This leaves space for dialog and choices
+        
+        # Define fixed positions with metaphorical meaning
+        sprite_positions = {
+            'thrall': (spacing, base_y),  # Player/subject on left
+            'jarl': (spacing * 2 + character_width, base_y),  # Authority in middle
+            'warrior': (spacing * 3 + character_width * 2, base_y)  # Victim on right
+        }
+        
+        # Draw all characters (always visible)
+        for character, position in sprite_positions.items():
+            sprite = self.assets.sprites[character]
+            self.screen.blit(sprite, position)
+            
+            # Highlight current speaker with a subtle effect
+            if scene.get('speaker') == character:
+                sprite_rect = sprite.get_rect(topleft=position)
+                highlight_rect = sprite_rect.inflate(20, 20)
+                pygame.draw.rect(self.screen, self.colors['terminal'], highlight_rect, 2)
+        
+        # Draw dialog
+        self.dialog_manager.draw_dialog(
+            self.screen,
+            scene,
+            self.text_manager,
+            self.assets.portraits,
+            state.authority_level
+        )
+        
+        # Draw interface text
+        if 'interface_text' in scene:
+            interface_rect = pygame.Rect(20, self.screen_height - 200, 300, 100)
+            pygame.draw.rect(self.screen, self.colors['black'], interface_rect)
+            pygame.draw.rect(self.screen, self.colors['terminal'], interface_rect, 1)
+            self.text_manager.draw_text(
+                self.screen,
+                scene['interface_text'],
+                (30, self.screen_height - 190),
+                self.colors['terminal'],
+                280
             )
         
-        # Posicionar el brillo bajo el personaje
-        glow_x = character.x - 40
-        glow_y = character.y + character.height - 60
-        self.screen.blit(glow_surface, (glow_x, glow_y))
-        """Add a more pronounced neon glow under characters"""
-        glow_width = character.sprite.get_width() + 60  # Increased glow width
-        glow_height = 80  # Increased glow height
-        glow_surface = pygame.Surface((glow_width, glow_height), pygame.SRCALPHA)
+        # Draw status - adjusted position for widescreen
+        status_text = f"Autoridad: {state.authority_level}/{state.MAX_AUTHORITY}"
+        self.text_manager.draw_text(
+            self.screen,
+            status_text,
+            (self.screen_width - 250, 30),
+            self.colors['terminal']
+        )
         
-        # Create more intense gradient glow effect
-        for i in range(glow_height):
-            alpha = int(255 * (1 - i/glow_height) * 0.8)  # Increased intensity
-            pygame.draw.ellipse(
-                glow_surface,
-                (*self.CHAR3_COLOR[:3], alpha),
-                (0, i, glow_width, 6)  # Thicker glow lines
+        # Draw choices
+        if not self.is_animating and scene.get('requires_choice', False):
+            return self.draw_choices([
+                ('Obedecer', True),
+                ('Resistir', False)
+            ])
+        return []
+
+    def draw_choices(self, choices: List[Tuple[str, bool]]) -> List[pygame.Rect]:
+        rects = []
+        button_width = 200
+        spacing = 50
+        start_x = (self.screen_width - (button_width * 2 + spacing)) // 2
+        y = self.screen_height - 100
+        
+        for i, (text, _) in enumerate(choices):
+            x = start_x + (button_width + spacing) * i
+            surface = self.text_manager.font.render(text, True, self.colors['terminal'])
+            rect = surface.get_rect(center=(x + button_width//2, y))
+            
+            pygame.draw.rect(self.screen, (20, 40, 20), rect.inflate(40, 20))
+            pygame.draw.rect(self.screen, self.colors['terminal'], rect.inflate(40, 20), 2)
+            
+            self.screen.blit(surface, rect)
+            rects.append(rect.inflate(40, 20))
+        
+        return rects
+
+    def show_ending(self, text: str):
+        fade_surface = pygame.Surface(self.screen.get_size())
+        fade_surface.fill(self.colors['black'])
+        
+        for alpha in range(0, 255, 5):
+            self.screen.blit(fade_surface, (0, 0))
+            fade_surface.set_alpha(alpha)
+            pygame.display.flip()
+            pygame.time.wait(20)
+        
+        self.screen.fill(self.colors['black'])
+        self.text_manager.start_text_animation(text)
+        
+        while self.is_animating:
+            self.screen.fill(self.colors['black'])
+            self.text_manager.draw_text(
+                self.screen,
+                text,
+                (50, 200),
+                self.colors['terminal'],
+                animated=True
             )
+            self.update_text_animation()
+            pygame.display.flip()
+            pygame.time.wait(20)
         
-        # Position the glow under the character
-        glow_x = character.x - 30
-        glow_y = character.y + character.sprite.get_height() - 40
-        self.screen.blit(glow_surface, (glow_x, glow_y))
-
-    def _draw_scanlines(self):
-        """Add subtle scanlines for cyberpunk effect"""
-        scanlines = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        for y in range(0, self.height, 4):  # Increased spacing for subtler effect
-            pygame.draw.line(scanlines, (0, 0, 0, 15), (0, y), (self.width, y))
-        self.screen.blit(scanlines, (0, 0))
-
-    def _draw_character_glow(self, character):
-        """Add a more pronounced neon glow under characters"""
-        glow_width = character.sprite.get_width() + 40
-        glow_height = 50
-        glow_surface = pygame.Surface((glow_width, glow_height), pygame.SRCALPHA)
-        
-        # Create more intense gradient glow effect
-        for i in range(glow_height):
-            alpha = int(255 * (1 - i/glow_height) * 0.7)
-            pygame.draw.ellipse(
-                glow_surface,
-                (*self.CHAR3_COLOR[:3], alpha),
-                (0, i, glow_width, 4)
-            )
-        
-        # Position the glow under the character
-        glow_x = character.x - 20
-        glow_y = character.y + character.sprite.get_height() - 25
-        self.screen.blit(glow_surface, (glow_x, glow_y))
-
-    def _draw_termination_status(self):
-        """Draw termination status with cyber effect"""
-        text = "EXPERIMENT TERMINATED"
-        base_color = (255, 0, 0)
-        glow_color = (255, 100, 100)
-        
-        # Create main text surface
-        text_surface = self.text_font.render(text, True, base_color)
-        
-        # Create glow effect
-        glow_surface = self.text_font.render(text, True, glow_color)
-        
-        # Position text at top center
-        x = self.width//2 - text_surface.get_width()//2
-        y = 20
-        
-        # Draw glow with offset
-        for offset in [(1,1), (-1,-1), (1,-1), (-1,1)]:
-            self.screen.blit(glow_surface, (x + offset[0], y + offset[1]))
-        
-        # Draw main text
-        self.screen.blit(text_surface, (x, y))
+        pygame.time.wait(5000)
